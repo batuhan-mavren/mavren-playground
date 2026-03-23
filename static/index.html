@@ -749,14 +749,16 @@ async function runAnalysis() {
         region: region || null,
         raw_response: data,
         synthesis: synthesisText,
+        image_base64: '',
       };
-      if (isVideo) {
-        // Extract a thumbnail frame from the video for the sheet link
-        logPayload.image_base64 = await videoToThumbnailB64(previewVideo);
-        logPayload.image_filename = selectedFile.name.replace(/\.\w+$/, '_thumb.jpg');
-      } else {
-        logPayload.image_base64 = await fileToBase64(selectedFile);
-      }
+      try {
+        if (isVideo) {
+          logPayload.image_base64 = await videoToThumbnailB64(previewVideo);
+          logPayload.image_filename = selectedFile.name.replace(/\.\w+$/, '_thumb.jpg');
+        } else {
+          logPayload.image_base64 = await fileToBase64(selectedFile);
+        }
+      } catch (thumbErr) { console.warn('Thumbnail extraction failed, logging without preview:', thumbErr); }
       fetch('/api/log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
