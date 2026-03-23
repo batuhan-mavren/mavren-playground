@@ -321,6 +321,26 @@ select:focus, input[type=text]:focus { border-color: var(--accent); }
   padding: 12px; background: var(--surface2); border-radius: 8px;
   border: 1px solid var(--border); max-height: 120px; overflow-y: auto;
 }
+
+/* VLM Status Banner */
+.vlm-banner {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  border-radius: 10px; font-size: 13px; margin-bottom: 16px;
+}
+.vlm-banner.vlm-ok {
+  background: rgba(52,211,153,.08); border: 1px solid rgba(52,211,153,.25);
+  color: var(--success);
+}
+.vlm-banner.vlm-partial {
+  background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.25);
+  color: var(--warning);
+}
+.vlm-banner.vlm-fallback {
+  background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.25);
+  color: var(--error);
+}
+.vlm-banner .vlm-icon { font-size: 16px; }
+.vlm-banner .vlm-details { font-size: 11px; color: var(--text-dim); margin-left: auto; }
 </style>
 </head>
 <body>
@@ -705,6 +725,11 @@ async function runAnalysis() {
     // Core metrics (always shown)
     renderMetrics(resultsArea, data);
 
+    // VLM status indicator
+    if (data.vlm_status) {
+      renderVlmStatus(resultsArea, data.vlm_status);
+    }
+
     // Video-specific: Emotional Arc + Audio Signals
     if (isVideo && data.video_signals) {
       if (data.video_signals.emotional_arc) {
@@ -781,6 +806,39 @@ async function runAnalysis() {
 // ---------------------------------------------------------------------------
 // Renderers
 // ---------------------------------------------------------------------------
+function renderVlmStatus(container, vlm) {
+  const refl = vlm.reflective || 'unknown';
+  const sym = vlm.symbolic_resonance || 'unknown';
+  const anyFallback = vlm.any_fallback;
+
+  let cls, icon, msg, details;
+  if (!anyFallback) {
+    cls = 'vlm-ok';
+    icon = '✓';
+    msg = 'Full VLM analysis — all layers used AI vision';
+    details = '';
+  } else if (refl === 'vlm' || sym === 'vlm') {
+    cls = 'vlm-partial';
+    icon = '⚠';
+    const parts = [];
+    if (refl !== 'vlm') parts.push('Reflective: ' + refl);
+    if (sym !== 'vlm') parts.push('Symbolic: ' + sym);
+    msg = 'Partial fallback — some layers used heuristics instead of VLM';
+    details = parts.join(' · ');
+  } else {
+    cls = 'vlm-fallback';
+    icon = '⚠';
+    msg = 'Full fallback — VLM unavailable, using heuristic analysis';
+    details = 'Reflective: ' + refl + ' · Symbolic: ' + sym;
+  }
+
+  const el = document.createElement('div');
+  el.className = 'vlm-banner ' + cls;
+  el.innerHTML = `<span class="vlm-icon">${icon}</span> <span>${msg}</span>` +
+    (details ? `<span class="vlm-details">${escapeHtml(details)}</span>` : '');
+  container.appendChild(el);
+}
+
 function renderMetrics(container, data) {
   const es = data.emotion_state || {};
   const ms = data.motivation_state || {};
