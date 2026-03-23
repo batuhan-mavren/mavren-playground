@@ -739,26 +739,30 @@ async function runAnalysis() {
 
     renderRawResponse(resultsArea, data);
 
-    // Log to sheet (image only for now — video files too large for base64 logging)
-    if (!isVideo) {
-      try {
-        const imageB64 = await fileToBase64(selectedFile);
-        fetch('/api/log', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image_base64: imageB64,
-            image_filename: selectedFile.name,
-            image_content_type: selectedFile.type,
-            channel: document.getElementById('channel').value,
-            funnel_stage: document.getElementById('funnelStage').value,
-            region: region || null,
-            raw_response: data,
-            synthesis: synthesisText,
-          }),
-        });
-      } catch (logErr) { console.warn('Sheet logging failed:', logErr); }
-    }
+    // Log to Google Sheet (fire-and-forget)
+    try {
+      const logPayload = {
+        image_filename: selectedFile.name,
+        image_content_type: selectedFile.type,
+        channel: document.getElementById('channel').value,
+        funnel_stage: document.getElementById('funnelStage').value,
+        region: region || null,
+        raw_response: data,
+        synthesis: synthesisText,
+      };
+      if (isVideo) {
+        // Extract a thumbnail frame from the video for the sheet link
+        logPayload.image_base64 = await videoToThumbnailB64(previewVideo);
+        logPayload.image_filename = selectedFile.name.replace(/\.\w+$/, '_thumb.jpg');
+      } else {
+        logPayload.image_base64 = await fileToBase64(selectedFile);
+      }
+      fetch('/api/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logPayload),
+      });
+    } catch (logErr) { console.warn('Sheet logging failed:', logErr); }
 
   } catch (err) {
     clearInterval(progressInterval);
@@ -983,6 +987,23 @@ function toggleRaw(btn) {
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
+function videoToThumbnailB64(videoEl) {
+  return new Promise((resolve) => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoEl.videoWidth || 640;
+      canvas.height = videoEl.videoHeight || 360;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      resolve(dataUrl.split(',')[1]);
+    } catch (e) {
+      console.warn('Thumbnail extraction failed:', e);
+      resolve('');
+    }
+  });
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
