@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mavren Playground</title>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #13131a;
+  --surface2: #1a1a24;
+  --border: #2a2a3a;
+  --border-focus: #7c5cfc;
+  --text: #e0e0e0;
+  --text-dim: #888;
+  --accent: #7c5cfc;
+  --accent2: #c084fc;
+  --success: #34d399;
+  --error: #f87171;
+  --warning: #fbbf24;
+  --radius: 10px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg); color: var(--text);
+  line-height: 1.6; min-height: 100vh;
+}
+
+/* Layout */
+.container { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 0; border-bottom: 1px solid var(--border); margin-bottom: 32px;
+}
+header h1 {
+  font-size: 22px; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+header .subtitle { color: var(--text-dim); font-size: 13px; }
+.logout-btn {
+  background: none; border: 1px solid var(--border); color: var(--text-dim);
+  padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px;
+}
+.logout-btn:hover { border-color: var(--text-dim); }
+
+/* Grid layout */
+.main-grid { display: grid; grid-template-columns: 380px 1fr; gap: 28px; }
+@media (max-width: 860px) { .main-grid { grid-template-columns: 1fr; } }
+
+/* Panels */
+.panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px;
+}
+.panel-title {
+  font-size: 15px; font-weight: 600; margin-bottom: 20px;
+  color: var(--text); display: flex; align-items: center; gap: 8px;
+}
+.panel-title .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+}
+
+/* Upload Zone */
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 32px 16px; text-align: center; cursor: pointer;
+  transition: border-color .2s, background .2s; position: relative;
+  min-height: 160px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--accent); background: rgba(124,92,252,.05);
+}
+.upload-zone .icon { font-size: 32px; margin-bottom: 8px; opacity: .5; }
+.upload-zone .label { color: var(--text-dim); font-size: 14px; }
+.upload-zone .sublabel { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
+.upload-zone input { display: none; }
+.upload-zone .preview-img {
+  max-width: 100%; max-height: 200px; border-radius: 8px; object-fit: contain;
+}
+.upload-zone .clear-btn {
+  position: absolute; top: 8px; right: 8px; background: var(--surface2);
+  border: 1px solid var(--border); color: var(--text-dim); width: 28px;
+  height: 28px; border-radius: 50%; cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Form Controls */
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block; font-size: 13px; font-weight: 500;
+  color: var(--text-dim); margin-bottom: 6px;
+}
+.form-group .required { color: var(--accent); }
+.form-group .optional {
+  font-size: 11px; color: var(--text-dim); opacity: .7;
+  font-weight: 400; margin-left: 4px;
+}
+select, input[type=text] {
+  width: 100%; padding: 10px 12px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text); font-size: 14px; outline: none; transition: border .2s;
+  appearance: none; -webkit-appearance: none;
+}
+select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+}
+select:focus, input[type=text]:focus { border-color: var(--accent); }
+
+/* Analyze Button */
+.analyze-btn {
+  width: 100%; padding: 14px; border: none; border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--accent), #9f6cfc);
+  color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: opacity .2s; margin-top: 8px;
+}
+.analyze-btn:hover:not(:disabled) { opacity: .9; }
+.analyze-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Results */
+.results-area { display: flex; flex-direction: column; gap: 20px; }
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: 400px; color: var(--text-dim);
+  font-size: 14px; text-align: center;
+}
+.empty-state .icon { font-size: 48px; opacity: .3; margin-bottom: 12px; }
+
+/* Synthesis Card */
+.synthesis-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px; position: relative;
+}
+.synthesis-card .card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.synthesis-card .card-title {
+  font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+}
+.synthesis-card .card-title .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--success);
+}
+.synthesis-content {
+  font-size: 14px; line-height: 1.7; color: var(--text);
+}
+.synthesis-content h2 {
+  font-size: 16px; font-weight: 600; margin: 20px 0 8px 0;
+  color: var(--accent2);
+}
+.synthesis-content h2:first-child { margin-top: 0; }
+.synthesis-content ul { margin: 8px 0 8px 20px; }
+.synthesis-content li { margin-bottom: 6px; }
+.synthesis-content strong { color: #fff; }
+.synthesis-content p { margin-bottom: 10px; }
+
+/* Collapsible Raw Response */
+.raw-response {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden;
+}
+.raw-toggle {
+  width: 100%; padding: 16px 24px; background: none; border: none;
+  color: var(--text-dim); font-size: 14px; font-weight: 500;
+  cursor: pointer; display: flex; align-items: center;
+  justify-content: space-between; text-align: left;
+}
+.raw-toggle:hover { color: var(--text); }
+.raw-toggle .arrow { transition: transform .2s; }
+.raw-toggle.open .arrow { transform: rotate(180deg); }
+.raw-body {
+  max-height: 0; overflow: hidden; transition: max-height .3s ease;
+}
+.raw-body.open { max-height: 5000px; }
+.raw-body pre {
+  padding: 16px 24px; font-size: 12px; font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--text-dim); overflow-x: auto; white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Loading States */
+.spinner {
+  display: inline-block; width: 18px; height: 18px;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-bar {
+  height: 3px; background: var(--surface2); border-radius: 2px;
+  overflow: hidden; margin-bottom: 16px;
+}
+.loading-bar .fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 2px; transition: width .5s;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
+}
+.status-badge.analyzing { background: rgba(124,92,252,.15); color: var(--accent); }
+.status-badge.synthesizing { background: rgba(52,211,153,.15); color: var(--success); }
+.status-badge.error { background: rgba(248,113,113,.15); color: var(--error); }
+.status-badge.done { background: rgba(52,211,153,.15); color: var(--success); }
+
+/* Key Metrics Strip */
+.metrics-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px; margin-bottom: 20px;
+}
+.metric-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px; text-align: center;
+}
+.metric-card .metric-value {
+  font-size: 22px; font-weight: 700; margin-bottom: 2px;
+}
+.metric-card .metric-label {
+  font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.metric-positive { color: var(--success); }
+.metric-warning { color: var(--warning); }
+.metric-negative { color: var(--error); }
+.metric-neutral { color: var(--accent2); }
+
+/* Markdown rendering in synthesis */
+.synthesis-content code {
+  background: var(--surface2); padding: 2px 6px; border-radius: 4px;
+  font-size: 13px;
+}
+
+/* Media Type Toggle */
+.media-toggle {
+  display: flex; gap: 0; margin-bottom: 16px;
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+}
+.media-toggle button {
+  flex: 1; padding: 10px; background: var(--surface2); border: none;
+  color: var(--text-dim); font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: all .2s;
+}
+.media-toggle button.active {
+  background: var(--accent); color: #fff;
+}
+.media-toggle button:hover:not(.active) { color: var(--text); }
+
+/* Video Preview */
+.upload-zone .preview-video {
+  max-width: 100%; max-height: 200px; border-radius: 8px;
+}
+.video-meta {
+  font-size: 12px; color: var(--text-dim); margin-top: 6px; text-align: center;
+}
+
+/* Emotional Arc Chart */
+.arc-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px;
+}
+.arc-card .card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.arc-card .card-title {
+  font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+}
+.arc-card .card-title .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent2);
+}
+.arc-canvas-wrap {
+  position: relative; width: 100%; height: 200px;
+}
+.arc-canvas-wrap canvas { width: 100%; height: 100%; }
+.arc-labels {
+  display: flex; justify-content: space-between; margin-top: 8px;
+  font-size: 11px; color: var(--text-dim);
+}
+.arc-type-badge {
+  display: inline-block; padding: 4px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; margin-left: 12px;
+  background: rgba(192,132,252,.15); color: var(--accent2);
+}
+.arc-insight {
+  margin-top: 12px; font-size: 13px; color: var(--text-dim);
+  line-height: 1.6; font-style: italic;
+}
+.arc-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px;
+}
+.arc-stat {
+  text-align: center; padding: 8px; background: var(--surface2);
+  border-radius: 8px; border: 1px solid var(--border);
+}
+.arc-stat .val { font-size: 14px; font-weight: 600; color: var(--accent2); }
+.arc-stat .lbl { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+
+/* Audio Signals Card */
+.audio-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px;
+}
+.audio-card .card-title {
+  font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+  margin-bottom: 14px;
+}
+.audio-card .card-title .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--warning);
+}
+.audio-detail { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.audio-pill {
+  padding: 6px 12px; border-radius: 8px; font-size: 12px;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+}
+.audio-transcript {
+  font-size: 13px; color: var(--text-dim); line-height: 1.6;
+  padding: 12px; background: var(--surface2); border-radius: 8px;
+  border: 1px solid var(--border); max-height: 120px; overflow-y: auto;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <div>
+    <h1>Mavren Playground</h1>
+    <div class="subtitle">Psychological Creative Analysis Engine</div>
+  </div>
+  <button class="logout-btn" onclick="logout()">Logout</button>
+</header>
+
+<div class="main-grid">
+
+  <!-- Left: Input Panel -->
+  <div>
+    <div class="panel">
+      <div class="panel-title"><span class="dot"></span> Creative Input</div>
+
+      <!-- Media Type Toggle -->
+      <div class="form-group">
+        <label>Creative Type <span class="required">*</span></label>
+        <div class="media-toggle">
+          <button id="toggleImage" class="active" onclick="setMediaType('image')">Image</button>
+          <button id="toggleVideo" onclick="setMediaType('video')">Video</button>
+        </div>
+      </div>
+
+      <!-- Upload Zone -->
+      <div class="form-group">
+        <label id="uploadLabel">Creative Image <span class="required">*</span></label>
+        <div class="upload-zone" id="uploadZone">
+          <div id="uploadPlaceholder">
+            <div class="icon" id="uploadIcon">📸</div>
+            <div class="label" id="uploadText">Drop an image or video here or click to browse</div>
+            <div class="sublabel" id="uploadSubtext">JPEG, PNG, WebP, GIF — up to 10 MB</div>
+          </div>
+          <div id="uploadPreview" style="display:none">
+            <img class="preview-img" id="previewImg">
+            <video class="preview-video" id="previewVideo" controls style="display:none"></video>
+            <div class="video-meta" id="videoMeta" style="display:none"></div>
+            <button class="clear-btn" onclick="clearMedia(event)">×</button>
+          </div>
+          <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/gif">
+        </div>
+      </div>
+
+      <!-- Channel -->
+      <div class="form-group">
+        <label>Channel</label>
+        <select id="channel">
+          <option value="paid_social" selected>Paid Social</option>
+          <option value="display">Display</option>
+          <option value="search">Search</option>
+          <option value="email">Email</option>
+          <option value="organic_social">Organic Social</option>
+          <option value="video">Video</option>
+          <option value="native">Native</option>
+        </select>
+      </div>
+
+      <!-- Funnel Stage -->
+      <div class="form-group">
+        <label>Funnel Stage</label>
+        <select id="funnelStage">
+          <option value="prospecting" selected>Prospecting</option>
+          <option value="awareness">Awareness</option>
+          <option value="consideration">Consideration</option>
+          <option value="conversion">Conversion</option>
+          <option value="retention">Retention</option>
+          <option value="reactivation">Reactivation</option>
+        </select>
+      </div>
+
+      <!-- Objective -->
+      <div class="form-group">
+        <label>Objective</label>
+        <select id="objective">
+          <option value="click" selected>Click</option>
+          <option value="impression">Impression</option>
+          <option value="conversion">Conversion</option>
+          <option value="engagement">Engagement</option>
+          <option value="video_view">Video View</option>
+          <option value="lead">Lead</option>
+          <option value="install">Install</option>
+        </select>
+      </div>
+
+      <!-- Region -->
+      <div class="form-group">
+        <label>Region <span class="optional">(optional)</span></label>
+        <select id="region">
+          <option value="">— Auto-detect —</option>
+          <option value="TR">Turkey (TR)</option>
+          <option value="US">United States (US)</option>
+          <option value="UK">United Kingdom (UK)</option>
+          <option value="DE">Germany (DE)</option>
+          <option value="FR">France (FR)</option>
+          <option value="JP">Japan (JP)</option>
+          <option value="BR">Brazil (BR)</option>
+          <option value="IN">India (IN)</option>
+          <option value="KR">South Korea (KR)</option>
+          <option value="SA">Saudi Arabia (SA)</option>
+          <option value="AE">UAE (AE)</option>
+          <option value="MX">Mexico (MX)</option>
+          <option value="AU">Australia (AU)</option>
+          <option value="NL">Netherlands (NL)</option>
+          <option value="ES">Spain (ES)</option>
+          <option value="IT">Italy (IT)</option>
+        </select>
+      </div>
+
+      <!-- Audience Mood -->
+      <div class="form-group">
+        <label>Audience Mood <span class="optional">(optional)</span></label>
+        <select id="audienceMood">
+          <option value="">— Not specified —</option>
+          <option value="positive">Positive</option>
+          <option value="neutral">Neutral</option>
+          <option value="stressed">Stressed</option>
+          <option value="curious">Curious</option>
+          <option value="skeptical">Skeptical</option>
+          <option value="anxious">Anxious</option>
+          <option value="excited">Excited</option>
+          <option value="bored">Bored</option>
+        </select>
+      </div>
+
+      <!-- Brand Archetype -->
+      <div class="form-group">
+        <label>Brand Archetype <span class="optional">(optional)</span></label>
+        <select id="brandArchetype">
+          <option value="">— Auto-detect —</option>
+          <option value="magician">Magician</option>
+          <option value="caregiver">Caregiver</option>
+          <option value="rebel">Rebel</option>
+          <option value="hero">Hero</option>
+          <option value="innocent">Innocent</option>
+          <option value="explorer">Explorer</option>
+          <option value="sage">Sage</option>
+          <option value="everyman">Everyman</option>
+          <option value="lover">Lover</option>
+          <option value="creator">Creator</option>
+          <option value="ruler">Ruler</option>
+          <option value="jester">Jester</option>
+        </select>
+      </div>
+
+      <!-- Attention Context (Psychic Energy) -->
+      <div class="form-group">
+        <label>Attention Context <span class="optional">(optional)</span></label>
+        <select id="attentionContext">
+          <option value="">— Not specified —</option>
+          <option value="passive_browsing">Passive Browsing</option>
+          <option value="active_research">Active Research</option>
+          <option value="competitor_comparison">Competitor Comparison</option>
+          <option value="post_purchase">Post Purchase</option>
+          <option value="re_engagement">Re-engagement</option>
+        </select>
+      </div>
+
+      <!-- Segment ID -->
+      <div class="form-group">
+        <label>Segment ID <span class="optional">(optional)</span></label>
+        <input type="text" id="segmentId" placeholder="e.g. young_professionals_tr">
+      </div>
+
+      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()" disabled>
+        Analyze Creative
+      </button>
+    </div>
+  </div>
+
+  <!-- Right: Results -->
+  <div class="results-area" id="resultsArea">
+    <div class="empty-state" id="emptyState">
+      <div class="icon">🧠</div>
+      <div>Upload an image or video creative and hit <strong>Analyze</strong><br>to run the full 7-layer psychological analysis.</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+let selectedFile = null;
+let lastRawResponse = null;
+let mediaType = 'image'; // 'image' or 'video'
+
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
+const IMAGE_MAX_MB = 10;
+const VIDEO_MAX_MB = 50;
+
+// ---------------------------------------------------------------------------
+// Media Type Toggle
+// ---------------------------------------------------------------------------
+function setMediaType(type) {
+  mediaType = type;
+  clearMedia(null);
+
+  document.getElementById('toggleImage').classList.toggle('active', type === 'image');
+  document.getElementById('toggleVideo').classList.toggle('active', type === 'video');
+
+  const fileInput = document.getElementById('fileInput');
+  const uploadLabel = document.getElementById('uploadLabel');
+  const uploadIcon = document.getElementById('uploadIcon');
+  const uploadText = document.getElementById('uploadText');
+  const uploadSubtext = document.getElementById('uploadSubtext');
+
+  if (type === 'image') {
+    fileInput.accept = 'image/jpeg,image/png,image/webp,image/gif';
+    uploadLabel.innerHTML = 'Creative Image <span class="required">*</span>';
+    uploadIcon.textContent = '📸';
+    uploadText.textContent = 'Drop an image here or click to browse';
+    uploadSubtext.textContent = 'JPEG, PNG, WebP, GIF — up to 10 MB';
+  } else {
+    fileInput.accept = 'video/mp4,video/quicktime,video/webm';
+    uploadLabel.innerHTML = 'Creative Video <span class="required">*</span>';
+    uploadIcon.textContent = '🎬';
+    uploadText.textContent = 'Drop a video here or click to browse';
+    uploadSubtext.textContent = 'MP4, MOV, WebM — up to 50 MB, max 60 seconds';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Upload handling
+// ---------------------------------------------------------------------------
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+const uploadPreview = document.getElementById('uploadPreview');
+const previewImg = document.getElementById('previewImg');
+const previewVideo = document.getElementById('previewVideo');
+const analyzeBtn = document.getElementById('analyzeBtn');
+
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files[0]); });
+
+function handleFile(file) {
+  const isImage = IMAGE_TYPES.includes(file.type);
+  const isVideo = VIDEO_TYPES.includes(file.type);
+
+  // Auto-detect media type from dropped file
+  if (isImage && mediaType !== 'image') setMediaType('image');
+  if (isVideo && mediaType !== 'video') setMediaType('video');
+
+  if (mediaType === 'image') {
+    if (!isImage) { alert('Please upload a JPEG, PNG, WebP, or GIF image.'); return; }
+    if (file.size > IMAGE_MAX_MB * 1024 * 1024) { alert(`Image must be under ${IMAGE_MAX_MB} MB.`); return; }
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewImg.src = e.target.result;
+      previewImg.style.display = 'block';
+      previewVideo.style.display = 'none';
+      document.getElementById('videoMeta').style.display = 'none';
+      uploadPlaceholder.style.display = 'none';
+      uploadPreview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  } else {
+    if (!isVideo) { alert('Please upload an MP4, MOV, or WebM video.'); return; }
+    if (file.size > VIDEO_MAX_MB * 1024 * 1024) { alert(`Video must be under ${VIDEO_MAX_MB} MB.`); return; }
+    selectedFile = file;
+    const url = URL.createObjectURL(file);
+    previewVideo.src = url;
+    previewVideo.style.display = 'block';
+    previewImg.style.display = 'none';
+    uploadPlaceholder.style.display = 'none';
+    uploadPreview.style.display = 'block';
+
+    // Show video metadata once loaded
+    previewVideo.onloadedmetadata = () => {
+      const dur = previewVideo.duration;
+      const w = previewVideo.videoWidth;
+      const h = previewVideo.videoHeight;
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      const meta = document.getElementById('videoMeta');
+      meta.textContent = `${w}x${h} · ${dur.toFixed(1)}s · ${sizeMB} MB`;
+      meta.style.display = 'block';
+
+      if (dur > 60) {
+        alert('Video must be 60 seconds or shorter.');
+        clearMedia(null);
+        return;
+      }
+    };
+  }
+  analyzeBtn.disabled = false;
+}
+
+function clearMedia(e) {
+  if (e) e.stopPropagation();
+  selectedFile = null;
+  fileInput.value = '';
+  uploadPlaceholder.style.display = '';
+  uploadPreview.style.display = 'none';
+  previewImg.style.display = 'none';
+  previewVideo.style.display = 'none';
+  previewVideo.src = '';
+  document.getElementById('videoMeta').style.display = 'none';
+  analyzeBtn.disabled = true;
+}
+
+// Backwards compat
+function clearImage(e) { clearMedia(e); }
+
+// ---------------------------------------------------------------------------
+// Analyze (unified for image + video)
+// ---------------------------------------------------------------------------
+async function runAnalysis() {
+  if (!selectedFile) return;
+
+  const resultsArea = document.getElementById('resultsArea');
+  const emptyState = document.getElementById('emptyState');
+  if (emptyState) emptyState.remove();
+
+  resultsArea.innerHTML = '';
+  analyzeBtn.disabled = true;
+  const isVideo = mediaType === 'video';
+  analyzeBtn.innerHTML = `<span class="spinner"></span>&nbsp; Analyzing ${isVideo ? 'video' : 'image'}…`;
+
+  // Status + progress
+  const statusEl = document.createElement('div');
+  statusEl.innerHTML = `
+    <div class="loading-bar"><div class="fill" id="progressFill"></div></div>
+    <div id="statusBadge" class="status-badge analyzing"><span class="spinner"></span> Running 7-layer analysis${isVideo ? ' (video processing may take longer)' : ''}…</div>
+  `;
+  resultsArea.appendChild(statusEl);
+
+  let progress = 0;
+  const progressFill = document.getElementById('progressFill');
+  const progressInterval = setInterval(() => {
+    progress = Math.min(progress + Math.random() * (isVideo ? 4 : 8), 90);
+    progressFill.style.width = progress + '%';
+  }, 500);
+
+  // Build form data
+  const fd = new FormData();
+  fd.append(isVideo ? 'video' : 'image', selectedFile);
+  fd.append('channel', document.getElementById('channel').value);
+  fd.append('funnel_stage', document.getElementById('funnelStage').value);
+  fd.append('objective', document.getElementById('objective').value);
+
+  const region = document.getElementById('region').value;
+  const mood = document.getElementById('audienceMood').value;
+  const archetype = document.getElementById('brandArchetype').value;
+  const segment = document.getElementById('segmentId').value;
+  const attCtx = document.getElementById('attentionContext').value;
+  if (region) fd.append('region', region);
+  if (mood) fd.append('audience_mood', mood);
+  if (archetype) fd.append('brand_archetype', archetype);
+  if (segment) fd.append('segment_id', segment);
+  if (attCtx) fd.append('attention_context', attCtx);
+
+  const endpoint = isVideo ? '/api/analyze-video' : '/api/analyze';
+
+  try {
+    const resp = await fetch(endpoint, { method: 'POST', body: fd });
+    clearInterval(progressInterval);
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(err.detail || err.error || `HTTP ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    lastRawResponse = data;
+    progressFill.style.width = '100%';
+
+    // Core metrics (always shown)
+    renderMetrics(resultsArea, data);
+
+    // Video-specific: Emotional Arc + Audio Signals
+    if (isVideo && data.video_signals) {
+      if (data.video_signals.emotional_arc) {
+        renderEmotionalArc(resultsArea, data.video_signals.emotional_arc);
+      }
+      if (data.video_signals.audio) {
+        renderAudioSignals(resultsArea, data.video_signals.audio);
+      }
+    }
+
+    // Synthesis
+    document.getElementById('statusBadge').className = 'status-badge synthesizing';
+    document.getElementById('statusBadge').innerHTML = '<span class="spinner"></span> Synthesizing improvements…';
+
+    const synthResp = await fetch('/api/synthesize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw_response: data }),
+    });
+
+    let synthesisText = null;
+    if (synthResp.ok) {
+      const synthData = await synthResp.json();
+      synthesisText = synthData.synthesis;
+      document.getElementById('statusBadge').className = 'status-badge done';
+      document.getElementById('statusBadge').innerHTML = '✓ Analysis complete';
+      renderSynthesis(resultsArea, synthesisText);
+    } else {
+      document.getElementById('statusBadge').className = 'status-badge done';
+      document.getElementById('statusBadge').innerHTML = '✓ Analysis complete (synthesis unavailable)';
+    }
+
+    renderRawResponse(resultsArea, data);
+
+    // Log to sheet (image only for now — video files too large for base64 logging)
+    if (!isVideo) {
+      try {
+        const imageB64 = await fileToBase64(selectedFile);
+        fetch('/api/log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image_base64: imageB64,
+            image_filename: selectedFile.name,
+            image_content_type: selectedFile.type,
+            channel: document.getElementById('channel').value,
+            funnel_stage: document.getElementById('funnelStage').value,
+            region: region || null,
+            raw_response: data,
+            synthesis: synthesisText,
+          }),
+        });
+      } catch (logErr) { console.warn('Sheet logging failed:', logErr); }
+    }
+
+  } catch (err) {
+    clearInterval(progressInterval);
+    progressFill.style.width = '100%';
+    progressFill.style.background = 'var(--error)';
+    document.getElementById('statusBadge').className = 'status-badge error';
+    document.getElementById('statusBadge').innerHTML = '✗ ' + err.message;
+  } finally {
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = 'Analyze Creative';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Renderers
+// ---------------------------------------------------------------------------
+function renderMetrics(container, data) {
+  const es = data.emotion_state || {};
+  const ms = data.motivation_state || {};
+  const co = data.coherence || {};
+
+  const metrics = [
+    { label: 'Emotion', value: capitalize(es.primary || '—'), cls: 'metric-neutral' },
+    { label: 'Valence', value: fmt(es.valence), cls: es.valence >= 0.5 ? 'metric-positive' : es.valence >= 0 ? 'metric-warning' : 'metric-negative' },
+    { label: 'Arousal', value: fmt(es.arousal), cls: es.arousal >= 0.6 ? 'metric-positive' : 'metric-warning' },
+    { label: 'Coherence', value: fmt(co.overall), cls: co.overall >= 0.7 ? 'metric-positive' : co.overall >= 0.4 ? 'metric-warning' : 'metric-negative' },
+    { label: 'Drive', value: fmt(ms.drive_intensity), cls: ms.drive_intensity >= 0.6 ? 'metric-positive' : 'metric-warning' },
+    { label: 'Predicted', value: capitalize(ms.predicted_action || '—'), cls: 'metric-neutral' },
+  ];
+
+  // Add video-specific metrics if available
+  if (data.video_signals) {
+    const vs = data.video_signals;
+    const arc = vs.emotional_arc;
+    if (arc) {
+      metrics.push({ label: 'Arc Type', value: capitalize(arc.arc_type || '—'), cls: 'metric-neutral' });
+      metrics.push({ label: 'Arc Coherence', value: fmt(arc.arc_coherence), cls: arc.arc_coherence >= 0.6 ? 'metric-positive' : 'metric-warning' });
+    }
+    if (vs.audio && vs.audio.music_mood) {
+      metrics.push({ label: 'Music Mood', value: capitalize(vs.audio.music_mood), cls: 'metric-neutral' });
+    }
+  }
+
+  const strip = document.createElement('div');
+  strip.className = 'metrics-strip';
+  strip.innerHTML = metrics.map(m =>
+    `<div class="metric-card"><div class="metric-value ${m.cls}">${m.value}</div><div class="metric-label">${m.label}</div></div>`
+  ).join('');
+  container.appendChild(strip);
+}
+
+function renderEmotionalArc(container, arc) {
+  const card = document.createElement('div');
+  card.className = 'arc-card';
+
+  const points = arc.arc_points || [];
+  const arcTypeLabel = capitalize(arc.arc_type || 'unknown');
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">
+        <span class="dot"></span> Emotional Arc
+        <span class="arc-type-badge">${escapeHtml(arcTypeLabel)}</span>
+      </div>
+    </div>
+    <div class="arc-canvas-wrap"><canvas id="arcCanvas"></canvas></div>
+    <div class="arc-labels">
+      <span>${escapeHtml(capitalize(arc.opening_emotion || '—'))}</span>
+      <span>Peak: ${escapeHtml(capitalize(arc.peak_emotion || '—'))}</span>
+      <span>${escapeHtml(capitalize(arc.closing_emotion || '—'))}</span>
+    </div>
+    <div class="arc-stats">
+      <div class="arc-stat"><div class="val">${fmt(arc.arc_coherence)}</div><div class="lbl">Coherence</div></div>
+      <div class="arc-stat"><div class="val">${fmt(arc.resolution_quality)}</div><div class="lbl">Resolution</div></div>
+      <div class="arc-stat"><div class="val">${arc.peak_timestamp_sec != null ? arc.peak_timestamp_sec.toFixed(1) + 's' : '—'}</div><div class="lbl">Peak At</div></div>
+    </div>
+    ${arc.arc_insight ? `<div class="arc-insight">"${escapeHtml(arc.arc_insight)}"</div>` : ''}
+  `;
+  container.appendChild(card);
+
+  // Draw the arc chart on canvas
+  if (points.length >= 2) {
+    requestAnimationFrame(() => drawArcChart(points));
+  }
+}
+
+function drawArcChart(points) {
+  const canvas = document.getElementById('arcCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width;
+  const H = rect.height;
+  const pad = { top: 16, bottom: 24, left: 8, right: 8 };
+
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+
+  // Normalize timestamps to 0-1
+  const minT = points[0].timestamp_sec;
+  const maxT = points[points.length - 1].timestamp_sec;
+  const tRange = maxT - minT || 1;
+
+  function toX(t) { return pad.left + ((t - minT) / tRange) * plotW; }
+  function toY(v) { return pad.top + (1 - v) * plotH; }
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(42,42,58,0.6)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (i / 4) * plotH;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+  }
+
+  // Valence line
+  ctx.strokeStyle = '#7c5cfc';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const x = toX(p.timestamp_sec);
+    const y = toY(p.valence);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Arousal line
+  ctx.strokeStyle = '#c084fc';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const x = toX(p.timestamp_sec);
+    const y = toY(p.arousal);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Data points (valence)
+  points.forEach(p => {
+    const x = toX(p.timestamp_sec);
+    const y = toY(p.valence);
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#7c5cfc';
+    ctx.fill();
+  });
+
+  // Legend
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.fillStyle = '#7c5cfc';
+  ctx.fillRect(W - 140, 4, 12, 3);
+  ctx.fillText('Valence', W - 124, 10);
+  ctx.fillStyle = '#c084fc';
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(W - 70, 6); ctx.lineTo(W - 58, 6); ctx.strokeStyle = '#c084fc'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillText('Arousal', W - 54, 10);
+}
+
+function renderAudioSignals(container, audio) {
+  if (!audio || !audio.has_audio) return;
+
+  const card = document.createElement('div');
+  card.className = 'audio-card';
+
+  let pills = '';
+  if (audio.music_mood) pills += `<span class="audio-pill">Music: ${escapeHtml(capitalize(audio.music_mood))}</span>`;
+  if (audio.audio_valence != null) pills += `<span class="audio-pill">Valence: ${audio.audio_valence.toFixed(2)}</span>`;
+  if (audio.audio_arousal != null) pills += `<span class="audio-pill">Arousal: ${audio.audio_arousal.toFixed(2)}</span>`;
+  if (audio.has_speech) pills += `<span class="audio-pill">Speech Detected</span>`;
+
+  let transcriptHtml = '';
+  if (audio.transcript) {
+    transcriptHtml = `<div class="audio-transcript"><strong>Transcript:</strong> ${escapeHtml(audio.transcript)}</div>`;
+  }
+
+  card.innerHTML = `
+    <div class="card-title"><span class="dot"></span> Audio Analysis</div>
+    <div class="audio-detail">${pills}</div>
+    ${transcriptHtml}
+  `;
+  container.appendChild(card);
+}
+
+function renderSynthesis(container, markdown) {
+  const card = document.createElement('div');
+  card.className = 'synthesis-card';
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-title"><span class="dot"></span> Strategic Improvements</div>
+    </div>
+    <div class="synthesis-content">${renderMarkdown(markdown)}</div>
+  `;
+  container.appendChild(card);
+}
+
+function renderRawResponse(container, data) {
+  const raw = document.createElement('div');
+  raw.className = 'raw-response';
+  raw.innerHTML = `
+    <button class="raw-toggle" onclick="toggleRaw(this)">
+      <span>Raw API Response</span>
+      <span class="arrow">▼</span>
+    </button>
+    <div class="raw-body">
+      <pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+    </div>
+  `;
+  container.appendChild(raw);
+}
+
+function toggleRaw(btn) {
+  btn.classList.toggle('open');
+  btn.nextElementSibling.classList.toggle('open');
+}
+
+// ---------------------------------------------------------------------------
+// Utilities
+// ---------------------------------------------------------------------------
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => { resolve(reader.result.split(',')[1]); };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function fmt(v) { return v != null ? (typeof v === 'number' ? v.toFixed(2) : v) : '—'; }
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : ''; }
+function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderMarkdown(md) {
+  return md
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/gs, m => '<ul>' + m + '</ul>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^/, '<p>').replace(/$/, '</p>')
+    .replace(/<p><h/g, '<h').replace(/<\/h(\d)><\/p>/g, '</h$1>')
+    .replace(/<p><ul>/g, '<ul>').replace(/<\/ul><\/p>/g, '</ul>');
+}
+
+function logout() {
+  fetch('/api/logout', { method: 'POST' }).then(() => window.location.href = '/login');
+}
+</script>
+</body>
+</html>
