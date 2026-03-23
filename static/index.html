@@ -765,31 +765,7 @@ async function runAnalysis() {
     renderRawResponse(resultsArea, data);
 
     // Log to Google Sheet (fire-and-forget)
-    try {
-      const logPayload = {
-        image_filename: selectedFile.name,
-        image_content_type: selectedFile.type,
-        channel: document.getElementById('channel').value,
-        funnel_stage: document.getElementById('funnelStage').value,
-        region: region || null,
-        raw_response: data,
-        synthesis: synthesisText,
-        image_base64: '',
-      };
-      try {
-        if (isVideo) {
-          logPayload.image_base64 = await videoToThumbnailB64(previewVideo);
-          logPayload.image_filename = selectedFile.name.replace(/\.\w+$/, '_thumb.jpg');
-        } else {
-          logPayload.image_base64 = await fileToBase64(selectedFile);
-        }
-      } catch (thumbErr) { console.warn('Thumbnail extraction failed, logging without preview:', thumbErr); }
-      fetch('/api/log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logPayload),
-      });
-    } catch (logErr) { console.warn('Sheet logging failed:', logErr); }
+    logToSheet(data, synthesisText, isVideo, region);
 
   } catch (err) {
     clearInterval(progressInterval);
@@ -1047,6 +1023,55 @@ function toggleRaw(btn) {
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
+async function logToSheet(data, synthesisText, isVideo, region) {
+  try {
+    // Strip video_signals from raw_response to keep payload small
+    const slimResponse = Object.assign({}, data);
+    if (slimResponse.video_signals) {
+      slimResponse.video_signals = {
+        duration_sec: slimResponse.video_signals.duration_sec,
+        fps: slimResponse.video_signals.fps,
+        resolution: slimResponse.video_signals.resolution,
+        has_audio: slimResponse.video_signals.has_audio,
+        arc_type: (slimResponse.video_signals.emotional_arc || {}).arc_type || null,
+      };
+    }
+
+    const logPayload = {
+      image_filename: selectedFile ? selectedFile.name : 'unknown',
+      image_content_type: selectedFile ? selectedFile.type : '',
+      channel: document.getElementById('channel').value,
+      funnel_stage: document.getElementById('funnelStage').value,
+      region: region || null,
+      raw_response: slimResponse,
+      synthesis: synthesisText,
+      image_base64: '',
+    };
+
+    // Try to get a thumbnail (image or video frame)
+    try {
+      if (isVideo && previewVideo) {
+        logPayload.image_base64 = await videoToThumbnailB64(previewVideo);
+        logPayload.image_filename = (selectedFile ? selectedFile.name : 'video').replace(/\.\w+$/, '_thumb.jpg');
+      } else if (selectedFile) {
+        logPayload.image_base64 = await fileToBase64(selectedFile);
+      }
+    } catch (e) {
+      console.warn('Thumbnail failed, logging without preview:', e);
+    }
+
+    console.log('Sending /api/log, payload size:', JSON.stringify(logPayload).length);
+    const logResp = await fetch('/api/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(logPayload),
+    });
+    console.log('/api/log response:', logResp.status);
+  } catch (err) {
+    console.error('Sheet logging failed:', err);
+  }
+}
+
 function videoToThumbnailB64(videoEl) {
   return new Promise((resolve) => {
     try {
