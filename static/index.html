@@ -722,50 +722,40 @@ async function runAnalysis() {
     lastRawResponse = data;
     progressFill.style.width = '100%';
 
-    // Core metrics (always shown)
-    renderMetrics(resultsArea, data);
-
-    // VLM status indicator
-    if (data.vlm_status) {
-      renderVlmStatus(resultsArea, data.vlm_status);
-    }
-
-    // Video-specific: Emotional Arc + Audio Signals
-    if (isVideo && data.video_signals) {
-      if (data.video_signals.emotional_arc) {
-        renderEmotionalArc(resultsArea, data.video_signals.emotional_arc);
-      }
-      if (data.video_signals.audio) {
-        renderAudioSignals(resultsArea, data.video_signals.audio);
-      }
-    }
-
-    // Synthesis
+    // Synthesis (runs before rendering so we have synthesisText for the log)
     document.getElementById('statusBadge').className = 'status-badge synthesizing';
     document.getElementById('statusBadge').innerHTML = '<span class="spinner"></span> Synthesizing improvements…';
 
-    const synthResp = await fetch('/api/synthesize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ raw_response: data }),
-    });
-
     let synthesisText = null;
-    if (synthResp.ok) {
-      const synthData = await synthResp.json();
-      synthesisText = synthData.synthesis;
-      document.getElementById('statusBadge').className = 'status-badge done';
-      document.getElementById('statusBadge').innerHTML = '✓ Analysis complete';
-      renderSynthesis(resultsArea, synthesisText);
-    } else {
-      document.getElementById('statusBadge').className = 'status-badge done';
-      document.getElementById('statusBadge').innerHTML = '✓ Analysis complete (synthesis unavailable)';
-    }
+    try {
+      const synthResp = await fetch('/api/synthesize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_response: data }),
+      });
+      if (synthResp.ok) {
+        const synthData = await synthResp.json();
+        synthesisText = synthData.synthesis;
+      }
+    } catch (synthErr) { console.warn('Synthesis failed:', synthErr); }
 
-    renderRawResponse(resultsArea, data);
+    document.getElementById('statusBadge').className = 'status-badge done';
+    document.getElementById('statusBadge').innerHTML = synthesisText ? '✓ Analysis complete' : '✓ Analysis complete (synthesis unavailable)';
 
-    // Log to Google Sheet (fire-and-forget)
+    // Log to Google Sheet FIRST — before rendering which may throw
     logToSheet(data, synthesisText, isVideo, region);
+
+    // Now render everything (errors here won't block logging)
+    try { renderMetrics(resultsArea, data); } catch (e) { console.warn('renderMetrics:', e); }
+    try { if (data.vlm_status) renderVlmStatus(resultsArea, data.vlm_status); } catch (e) { console.warn('renderVlmStatus:', e); }
+    try {
+      if (isVideo && data.video_signals) {
+        if (data.video_signals.emotional_arc) renderEmotionalArc(resultsArea, data.video_signals.emotional_arc);
+        if (data.video_signals.audio) renderAudioSignals(resultsArea, data.video_signals.audio);
+      }
+    } catch (e) { console.warn('renderVideo:', e); }
+    try { if (synthesisText) renderSynthesis(resultsArea, synthesisText); } catch (e) { console.warn('renderSynthesis:', e); }
+    try { renderRawResponse(resultsArea, data); } catch (e) { console.warn('renderRaw:', e); }
 
   } catch (err) {
     clearInterval(progressInterval);
