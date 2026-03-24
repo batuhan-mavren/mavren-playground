@@ -322,6 +322,158 @@ select:focus, input[type=text]:focus { border-color: var(--accent); }
   border: 1px solid var(--border); max-height: 120px; overflow-y: auto;
 }
 
+/* Regeneration Button */
+.regen-btn {
+  width: 100%; padding: 14px; border: 2px solid var(--accent);
+  border-radius: var(--radius); background: transparent;
+  color: var(--accent); font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: all .2s; margin-top: 4px;
+}
+.regen-btn:hover:not(:disabled) {
+  background: var(--accent); color: #fff;
+}
+.regen-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Side-by-side Comparison */
+.comparison-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+@media (max-width: 860px) { .comparison-grid { grid-template-columns: 1fr; } }
+.comparison-col {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px; position: relative;
+}
+.comparison-col.original { border-top: 3px solid var(--text-dim); }
+.comparison-col.regenerated { border-top: 3px solid var(--success); }
+.comparison-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 14px; display: flex;
+  align-items: center; gap: 8px;
+}
+.comparison-label.original { color: var(--text-dim); }
+.comparison-label.regenerated { color: var(--success); }
+.comparison-col img {
+  width: 100%; border-radius: 10px; margin-bottom: 14px;
+  border: 1px solid var(--border);
+}
+
+/* Delta Badges */
+.delta-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px; margin: 16px 0;
+}
+.delta-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px; text-align: center;
+}
+.delta-card .delta-value {
+  font-size: 18px; font-weight: 700; margin-bottom: 2px;
+}
+.delta-card .delta-label {
+  font-size: 10px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.delta-up { color: var(--success); }
+.delta-down { color: var(--error); }
+.delta-neutral { color: var(--text-dim); }
+
+/* Regenerated Copy Card */
+.copy-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px;
+}
+.copy-card .card-title {
+  font-size: 15px; font-weight: 600; display: flex;
+  align-items: center; gap: 8px; margin-bottom: 16px;
+}
+.copy-card .card-title .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+}
+.copy-headline {
+  font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;
+}
+.copy-body {
+  font-size: 14px; color: var(--text); line-height: 1.6; margin-bottom: 12px;
+}
+.copy-cta-preview {
+  display: inline-block; padding: 10px 24px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), #9f6cfc);
+  color: #fff; font-weight: 600; font-size: 14px;
+}
+.copy-rationale {
+  margin-top: 14px; font-size: 12px; color: var(--text-dim);
+  font-style: italic; line-height: 1.5;
+}
+
+/* Supplementary Copy Elements */
+.supp-section {
+  margin-top: 18px; padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.supp-title {
+  font-size: 12px; font-weight: 600; color: var(--accent2);
+  text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px;
+}
+.supp-element {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+}
+.supp-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.supp-type {
+  font-size: 12px; font-weight: 600; color: var(--accent);
+}
+.supp-placement {
+  font-size: 10px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: .5px; padding: 2px 8px; border-radius: 4px;
+  background: var(--surface); border: 1px solid var(--border);
+}
+.supp-text {
+  font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 4px;
+}
+.supp-rationale {
+  font-size: 11px; color: var(--text-dim); font-style: italic; line-height: 1.4;
+}
+
+.copy-tone {
+  display: inline-block; padding: 4px 10px; border-radius: 6px;
+  font-size: 11px; font-weight: 600; margin-bottom: 12px;
+  background: rgba(124,92,252,.15); color: var(--accent);
+}
+
+/* Manifest Card */
+.manifest-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px;
+}
+.manifest-card .card-title {
+  font-size: 15px; font-weight: 600; display: flex;
+  align-items: center; gap: 8px; margin-bottom: 16px;
+}
+.manifest-card .card-title .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--warning);
+}
+.manifest-changes {
+  list-style: none; padding: 0;
+}
+.manifest-changes li {
+  padding: 10px 14px; margin-bottom: 6px; border-radius: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  font-size: 13px; color: var(--text); line-height: 1.5;
+}
+.manifest-changes li .change-label {
+  font-weight: 600; color: var(--accent2); display: block;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
+  margin-bottom: 2px;
+}
+.manifest-strategy {
+  margin-top: 14px; padding: 12px; border-radius: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  font-size: 13px; color: var(--text-dim); line-height: 1.6;
+}
+
 /* VLM Status Banner */
 .vlm-banner {
   display: flex; align-items: center; gap: 10px; padding: 10px 14px;
@@ -759,6 +911,12 @@ async function runAnalysis() {
       }
     } catch (e) { console.warn('renderVideo:', e); }
     try { if (synthesisText) renderSynthesis(resultsArea, synthesisText); } catch (e) { console.warn('renderSynthesis:', e); }
+
+    // Regeneration button (only for images)
+    if (!isVideo) {
+      try { renderRegenButton(resultsArea); } catch (e) { console.warn('renderRegenBtn:', e); }
+    }
+
     try { renderRawResponse(resultsArea, data); } catch (e) { console.warn('renderRaw:', e); }
 
   } catch (err) {
@@ -994,6 +1152,19 @@ function renderSynthesis(container, markdown) {
   container.appendChild(card);
 }
 
+function renderRegenButton(container) {
+  const btnWrap = document.createElement('div');
+  btnWrap.innerHTML = `
+    <button class="regen-btn" id="regenBtn" onclick="runRegeneration()">
+      ✨ Regenerate Creative
+    </button>
+    <div style="text-align:center;margin-top:6px;font-size:11px;color:var(--text-dim);">
+      Uses DALL-E 3 + Claude to create an improved version based on the psychological analysis
+    </div>
+  `;
+  container.appendChild(btnWrap);
+}
+
 function renderRawResponse(container, data) {
   const raw = document.createElement('div');
   raw.className = 'raw-response';
@@ -1109,6 +1280,323 @@ function renderMarkdown(md) {
     .replace(/^/, '<p>').replace(/$/, '</p>')
     .replace(/<p><h/g, '<h').replace(/<\/h(\d)><\/p>/g, '</h$1>')
     .replace(/<p><ul>/g, '<ul>').replace(/<\/ul><\/p>/g, '</ul>');
+}
+
+// ---------------------------------------------------------------------------
+// Regeneration
+// ---------------------------------------------------------------------------
+async function runRegeneration() {
+  if (!selectedFile || !lastRawResponse) return;
+
+  const regenBtn = document.getElementById('regenBtn');
+  if (regenBtn) {
+    regenBtn.disabled = true;
+    regenBtn.innerHTML = '<span class="spinner"></span>&nbsp; Regenerating creative…';
+  }
+
+  const resultsArea = document.getElementById('resultsArea');
+
+  // Add regeneration status
+  const statusEl = document.createElement('div');
+  statusEl.id = 'regenStatus';
+  statusEl.innerHTML = `
+    <div class="loading-bar"><div class="fill" id="regenProgressFill"></div></div>
+    <div id="regenBadge" class="status-badge analyzing"><span class="spinner"></span> Generating new creative based on psychological analysis…</div>
+  `;
+  resultsArea.appendChild(statusEl);
+
+  let progress = 0;
+  const progressFill = document.getElementById('regenProgressFill');
+  const progressInterval = setInterval(() => {
+    progress = Math.min(progress + Math.random() * 3, 90);
+    if (progressFill) progressFill.style.width = progress + '%';
+  }, 800);
+
+  const fd = new FormData();
+  fd.append('image', selectedFile);
+  fd.append('channel', document.getElementById('channel').value);
+  fd.append('funnel_stage', document.getElementById('funnelStage').value);
+  fd.append('objective', document.getElementById('objective').value);
+
+  const region = document.getElementById('region').value;
+  const mood = document.getElementById('audienceMood').value;
+  const archetype = document.getElementById('brandArchetype').value;
+  const segment = document.getElementById('segmentId').value;
+  const attCtx = document.getElementById('attentionContext').value;
+  if (region) fd.append('region', region);
+  if (mood) fd.append('audience_mood', mood);
+  if (archetype) fd.append('brand_archetype', archetype);
+  if (segment) fd.append('segment_id', segment);
+  if (attCtx) fd.append('attention_context', attCtx);
+
+  try {
+    const resp = await fetch('/api/regenerate', { method: 'POST', body: fd });
+    clearInterval(progressInterval);
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(err.detail || err.error || `HTTP ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    if (progressFill) progressFill.style.width = '100%';
+
+    const badge = document.getElementById('regenBadge');
+    if (badge) {
+      badge.className = 'status-badge done';
+      badge.innerHTML = '✓ Creative regenerated';
+    }
+
+    // Render regeneration results
+    renderRegeneration(resultsArea, data);
+
+  } catch (err) {
+    clearInterval(progressInterval);
+    if (progressFill) {
+      progressFill.style.width = '100%';
+      progressFill.style.background = 'var(--error)';
+    }
+    const badge = document.getElementById('regenBadge');
+    if (badge) {
+      badge.className = 'status-badge error';
+      badge.innerHTML = '✗ Regeneration failed: ' + escapeHtml(err.message);
+    }
+  } finally {
+    if (regenBtn) {
+      regenBtn.disabled = false;
+      regenBtn.innerHTML = '✨ Regenerate Creative';
+    }
+  }
+}
+
+function renderRegenProviderStatus(container, regen, manifest) {
+  const imgStatus = regen.image_provider_status || manifest.image_provider || 'unknown';
+  const copyStatus = regen.copy_provider_status || manifest.copy_provider || 'unknown';
+  const genTime = manifest.generation_time_ms;
+
+  // Determine overall status class
+  const imgOk = imgStatus.includes('dall-e') || imgStatus.includes('stability');
+  const imgFallback = imgStatus.includes('fallback');
+  const imgFailed = imgStatus.includes('none') || imgStatus.includes('error');
+  const copyOk = copyStatus === 'claude' || copyStatus === 'openai';
+  const copyFallback = copyStatus === 'template';
+
+  let cls, icon, msg;
+  if (imgOk && !imgFallback && copyOk) {
+    cls = 'vlm-ok';
+    icon = '✓';
+    msg = 'Full AI generation — image and copy produced by primary providers';
+  } else if ((imgOk || imgFallback) && (copyOk || copyFallback)) {
+    cls = 'vlm-partial';
+    icon = '⚠';
+    const parts = [];
+    if (imgFallback) parts.push('Image used fallback provider');
+    if (copyFallback) parts.push('Copy used template fallback');
+    msg = 'Partial fallback — ' + parts.join(', ');
+  } else {
+    cls = 'vlm-fallback';
+    icon = '⚠';
+    msg = imgFailed ? 'Image generation unavailable — copy only' : 'Generation issues detected';
+  }
+
+  // Build detail chips
+  const imgLabel = imgOk ? (imgFallback ? imgStatus : imgStatus.replace('dall-e-3', 'DALL-E 3').replace('stability', 'Stability AI')) : (imgFailed ? 'No image API' : imgStatus);
+  const copyLabel = copyStatus === 'claude' ? 'Claude' : copyStatus === 'openai' ? 'OpenAI GPT' : 'Template';
+  const timeLabel = genTime ? `${(genTime / 1000).toFixed(1)}s` : '';
+
+  const el = document.createElement('div');
+  el.className = 'vlm-banner ' + cls;
+  el.innerHTML = `
+    <span class="vlm-icon">${icon}</span>
+    <span>${msg}</span>
+    <span class="vlm-details">
+      Image: <strong>${escapeHtml(imgLabel)}</strong> · Copy: <strong>${escapeHtml(copyLabel)}</strong>${timeLabel ? ' · ' + timeLabel : ''}
+    </span>
+  `;
+  container.appendChild(el);
+}
+
+function renderRegeneration(container, data) {
+  const regen = data.regeneration || {};
+  const comparison = data.comparison || {};
+  const regenAnalysis = data.regenerated_analysis || {};
+  const manifest = regen.manifest || {};
+  const strategy = manifest.strategy || {};
+  const copy = regen.copy || {};
+
+  // 0. Provider status banner — which APIs handled image + copy
+  renderRegenProviderStatus(container, regen, manifest);
+
+  // 1. Delta strip — before/after emotional scores
+  if (comparison && Object.keys(comparison).length > 0) {
+    const deltaEl = document.createElement('div');
+    deltaEl.innerHTML = `<div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--accent2);">Emotional Impact — Before vs After</div>`;
+    const strip = document.createElement('div');
+    strip.className = 'delta-strip';
+
+    const metrics = [
+      { label: 'Valence', orig: comparison.valence?.original, regen: comparison.valence?.regenerated, delta: comparison.valence?.delta },
+      { label: 'Arousal', orig: comparison.arousal?.original, regen: comparison.arousal?.regenerated, delta: comparison.arousal?.delta },
+      { label: 'Coherence', orig: comparison.coherence?.original, regen: comparison.coherence?.regenerated, delta: comparison.coherence?.delta },
+      { label: 'Drive', orig: comparison.drive?.original, regen: comparison.drive?.regenerated, delta: comparison.drive?.delta },
+    ];
+
+    // Add emotion change
+    if (comparison.emotion) {
+      const emotionCard = document.createElement('div');
+      emotionCard.className = 'delta-card';
+      const changed = comparison.emotion.changed;
+      emotionCard.innerHTML = `
+        <div class="delta-value ${changed ? 'delta-up' : 'delta-neutral'}">${capitalize(comparison.emotion.regenerated || '—')}</div>
+        <div class="delta-label">${changed ? capitalize(comparison.emotion.original || '') + ' →' : 'Emotion (same)'}</div>
+      `;
+      strip.appendChild(emotionCard);
+    }
+
+    metrics.forEach(m => {
+      if (m.delta == null) return;
+      const cls = m.delta > 0.01 ? 'delta-up' : m.delta < -0.01 ? 'delta-down' : 'delta-neutral';
+      const sign = m.delta > 0 ? '+' : '';
+      const card = document.createElement('div');
+      card.className = 'delta-card';
+      card.innerHTML = `
+        <div class="delta-value ${cls}">${sign}${m.delta.toFixed(3)}</div>
+        <div class="delta-label">${m.label} (${fmt(m.orig)} → ${fmt(m.regen)})</div>
+      `;
+      strip.appendChild(card);
+    });
+
+    deltaEl.appendChild(strip);
+    container.appendChild(deltaEl);
+  }
+
+  // 2. Side-by-side images
+  const compGrid = document.createElement('div');
+  compGrid.className = 'comparison-grid';
+
+  // Original
+  const origCol = document.createElement('div');
+  origCol.className = 'comparison-col original';
+  let origImgHtml = '';
+  if (previewImg.src && mediaType === 'image') {
+    origImgHtml = `<img src="${previewImg.src}" alt="Original creative">`;
+  }
+  origCol.innerHTML = `
+    <div class="comparison-label original">◆ Original</div>
+    ${origImgHtml}
+    <div class="metrics-strip" style="margin-bottom:0">
+      ${renderMiniMetrics(data.original_analysis || lastRawResponse)}
+    </div>
+  `;
+  compGrid.appendChild(origCol);
+
+  // Regenerated
+  const regenCol = document.createElement('div');
+  regenCol.className = 'comparison-col regenerated';
+  let regenImgHtml = '';
+  if (regen.image_base64) {
+    regenImgHtml = `<img src="data:image/png;base64,${regen.image_base64}" alt="Regenerated creative">`;
+  } else if (regen.image_url) {
+    regenImgHtml = `<img src="${escapeHtml(regen.image_url)}" alt="Regenerated creative">`;
+  } else if (regen.error) {
+    regenImgHtml = `<div style="padding:24px;text-align:center;color:var(--warning);font-size:13px;background:var(--surface2);border-radius:10px;margin-bottom:14px;">Image generation unavailable: ${escapeHtml(regen.error)}</div>`;
+  }
+  regenCol.innerHTML = `
+    <div class="comparison-label regenerated">✦ Regenerated</div>
+    ${regenImgHtml}
+    <div class="metrics-strip" style="margin-bottom:0">
+      ${regenAnalysis ? renderMiniMetrics(regenAnalysis) : '<div style="color:var(--text-dim);font-size:13px;">Re-analysis pending image generation</div>'}
+    </div>
+  `;
+  compGrid.appendChild(regenCol);
+  container.appendChild(compGrid);
+
+  // 3. Regenerated Copy
+  if (copy.headline || copy.body || copy.cta) {
+    const copyCard = document.createElement('div');
+    copyCard.className = 'copy-card';
+
+    // Render supplementary elements if present
+    const suppElements = copy.supplementary || [];
+    let suppHtml = '';
+    if (suppElements.length > 0) {
+      const suppItems = suppElements.map(s => {
+        const typeLabel = (s.type || '').replace(/_/g, ' ');
+        const placementLabel = (s.placement || '').replace(/_/g, ' ');
+        const sourceIcon = s.source_signal === 'counterfactual' ? '🔄' :
+                           s.source_signal === 'decision_tree' ? '🌳' :
+                           s.source_signal === 'emotional_tactic' ? '🎯' :
+                           s.source_signal === 'coherence_conflict' ? '⚡' : '📌';
+        return `<div class="supp-element">
+          <div class="supp-header">
+            <span class="supp-type">${sourceIcon} ${escapeHtml(capitalize(typeLabel))}</span>
+            <span class="supp-placement">${escapeHtml(placementLabel)}</span>
+          </div>
+          <div class="supp-text">${escapeHtml(s.text || '')}</div>
+          ${s.rationale ? `<div class="supp-rationale">${escapeHtml(s.rationale)}</div>` : ''}
+        </div>`;
+      }).join('');
+      suppHtml = `
+        <div class="supp-section">
+          <div class="supp-title">Supplementary Elements — Mavren recommends adding:</div>
+          ${suppItems}
+        </div>
+      `;
+    }
+
+    copyCard.innerHTML = `
+      <div class="card-title"><span class="dot"></span> Regenerated Ad Copy</div>
+      ${copy.tone_description ? `<div class="copy-tone">${escapeHtml(copy.tone_description)}</div>` : ''}
+      <div class="copy-headline">${escapeHtml(copy.headline || '')}</div>
+      <div class="copy-body">${escapeHtml(copy.body || '')}</div>
+      ${copy.cta ? `<div class="copy-cta-preview">${escapeHtml(copy.cta)}</div>` : ''}
+      ${suppHtml}
+      ${copy.psychological_rationale ? `<div class="copy-rationale">${escapeHtml(copy.psychological_rationale)}</div>` : ''}
+    `;
+    container.appendChild(copyCard);
+  }
+
+  // 4. Change Manifest
+  if (strategy.primary_changes && strategy.primary_changes.length > 0) {
+    const manifestEl = document.createElement('div');
+    manifestEl.className = 'manifest-card';
+
+    const changesHtml = strategy.primary_changes.map(c =>
+      `<li><span class="change-label">Applied</span>${escapeHtml(c)}</li>`
+    ).join('');
+
+    const cfApplied = (strategy.counterfactuals_applied || []).map(c =>
+      `<li><span class="change-label">Counterfactual</span>${escapeHtml(c)}</li>`
+    ).join('');
+
+    manifestEl.innerHTML = `
+      <div class="card-title"><span class="dot"></span> Regeneration Manifest</div>
+      <ul class="manifest-changes">${changesHtml}${cfApplied}</ul>
+      <div class="manifest-strategy">
+        <strong>Strategy:</strong> ${escapeHtml(capitalize(strategy.synthesis_mode || 'reinforce'))} mode<br>
+        <strong>Target:</strong> ${escapeHtml(capitalize(strategy.target_emotion || 'neutral'))} (V=${fmt(strategy.target_valence)}, A=${fmt(strategy.target_arousal)})<br>
+        <strong>Rationale:</strong> ${escapeHtml(strategy.psychological_rationale || '')}
+      </div>
+    `;
+    container.appendChild(manifestEl);
+  }
+}
+
+function renderMiniMetrics(data) {
+  const es = data.emotion_state || {};
+  const co = data.coherence || {};
+  const ms = data.motivation_state || {};
+
+  const metrics = [
+    { label: 'Emotion', value: capitalize(es.primary || '—') },
+    { label: 'Valence', value: fmt(es.valence) },
+    { label: 'Arousal', value: fmt(es.arousal) },
+    { label: 'Coherence', value: fmt(co.overall) },
+  ];
+
+  return metrics.map(m =>
+    `<div class="metric-card"><div class="metric-value metric-neutral" style="font-size:16px;">${m.value}</div><div class="metric-label">${m.label}</div></div>`
+  ).join('');
 }
 
 function logout() {

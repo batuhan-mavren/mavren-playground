@@ -301,6 +301,71 @@ async def analyze_video(
 
 
 # ---------------------------------------------------------------------------
+# Creative Regeneration Proxy
+# ---------------------------------------------------------------------------
+
+@app.post("/api/regenerate")
+async def regenerate(
+    image: UploadFile = File(...),
+    channel: str = Form("paid_social"),
+    funnel_stage: str = Form("prospecting"),
+    objective: str = Form("click"),
+    audience_mood: Optional[str] = Form(None),
+    brand_archetype: Optional[str] = Form(None),
+    segment_id: Optional[str] = Form(None),
+    region: Optional[str] = Form(None),
+    attention_context: Optional[str] = Form(None),
+    provider: Optional[str] = Form(None),
+):
+    """Proxy to Mavren Brain's /regenerate endpoint — full creative regeneration pipeline."""
+
+    image_bytes = await image.read()
+
+    files = {"image": (image.filename, image_bytes, image.content_type or "image/png")}
+    data = {
+        "channel": channel,
+        "funnel_stage": funnel_stage,
+        "objective": objective,
+    }
+    if audience_mood:
+        data["audience_mood"] = audience_mood
+    if brand_archetype:
+        data["brand_archetype"] = brand_archetype
+    if segment_id:
+        data["segment_id"] = segment_id
+    if region:
+        data["region"] = region
+    if attention_context:
+        data["attention_context"] = attention_context
+    if provider:
+        data["provider"] = provider
+
+    headers = {}
+    if MAVREN_API_KEY:
+        headers["X-API-Key"] = MAVREN_API_KEY
+
+    try:
+        async with httpx.AsyncClient(timeout=180.0) as client:
+            resp = await client.post(
+                f"{MAVREN_API_URL}/regenerate",
+                files=files,
+                data=data,
+                headers=headers,
+            )
+        if resp.status_code != 200:
+            return JSONResponse(
+                {"error": f"Mavren Brain returned {resp.status_code}", "detail": resp.text},
+                status_code=resp.status_code,
+            )
+        return resp.json()
+    except httpx.TimeoutException:
+        return JSONResponse({"error": "Regeneration timed out (180s)"}, status_code=504)
+    except Exception as e:
+        logger.exception("Regenerate proxy failed")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# ---------------------------------------------------------------------------
 # Claude Synthesis — Improvement Suggestions
 # ---------------------------------------------------------------------------
 
