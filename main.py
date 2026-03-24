@@ -315,9 +315,8 @@ async def regenerate(
     segment_id: Optional[str] = Form(None),
     region: Optional[str] = Form(None),
     attention_context: Optional[str] = Form(None),
-    provider: Optional[str] = Form(None),
 ):
-    """Proxy to Mavren Brain's /regenerate endpoint — full creative regeneration pipeline."""
+    """Proxy to Mavren Brain's /regenerate endpoint — edits original image + generates copy."""
 
     image_bytes = await image.read()
 
@@ -337,8 +336,6 @@ async def regenerate(
         data["region"] = region
     if attention_context:
         data["attention_context"] = attention_context
-    if provider:
-        data["provider"] = provider
 
     headers = {}
     if MAVREN_API_KEY:

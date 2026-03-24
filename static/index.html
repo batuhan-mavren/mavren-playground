@@ -1370,39 +1370,25 @@ async function runRegeneration() {
 }
 
 function renderRegenProviderStatus(container, regen, manifest) {
-  const imgStatus = regen.image_provider_status || manifest.image_provider || 'unknown';
   const copyStatus = regen.copy_provider_status || manifest.copy_provider || 'unknown';
   const genTime = manifest.generation_time_ms;
+  const adjustments = regen.image_adjustments_applied || [];
+  const imageAdjs = manifest.image_adjustments || [];
 
-  // Determine overall status class
-  const imgOk = imgStatus.includes('dall-e') || imgStatus.includes('stability');
-  const imgFallback = imgStatus.includes('fallback');
-  const imgFailed = imgStatus.includes('none') || imgStatus.includes('error');
   const copyOk = copyStatus === 'claude' || copyStatus === 'openai';
-  const copyFallback = copyStatus === 'template';
-
-  let cls, icon, msg;
-  if (imgOk && !imgFallback && copyOk) {
-    cls = 'vlm-ok';
-    icon = '✓';
-    msg = 'Full AI generation — image and copy produced by primary providers';
-  } else if ((imgOk || imgFallback) && (copyOk || copyFallback)) {
-    cls = 'vlm-partial';
-    icon = '⚠';
-    const parts = [];
-    if (imgFallback) parts.push('Image used fallback provider');
-    if (copyFallback) parts.push('Copy used template fallback');
-    msg = 'Partial fallback — ' + parts.join(', ');
-  } else {
-    cls = 'vlm-fallback';
-    icon = '⚠';
-    msg = imgFailed ? 'Image generation unavailable — copy only' : 'Generation issues detected';
-  }
-
-  // Build detail chips
-  const imgLabel = imgOk ? (imgFallback ? imgStatus : imgStatus.replace('dall-e-3', 'DALL-E 3').replace('stability', 'Stability AI')) : (imgFailed ? 'No image API' : imgStatus);
   const copyLabel = copyStatus === 'claude' ? 'Claude' : copyStatus === 'openai' ? 'OpenAI GPT' : 'Template';
   const timeLabel = genTime ? `${(genTime / 1000).toFixed(1)}s` : '';
+
+  let cls = copyOk ? 'vlm-ok' : 'vlm-partial';
+  let icon = '✓';
+  let msg = `Original image edited with ${imageAdjs.length} psychological adjustment${imageAdjs.length !== 1 ? 's' : ''} + new copy`;
+
+  // Build adjustment chips
+  const adjChips = imageAdjs.map(a => {
+    const dir = a.value > 1.0 || (a.parameter === 'warmth' && a.value > 0) ? '↑' : '↓';
+    const pct = a.parameter === 'warmth' ? (a.value > 0 ? '+' : '') + (a.value * 100).toFixed(0) + '%' : (a.value * 100 - 100).toFixed(0) + '%';
+    return `<span style="background:var(--surface2);padding:2px 8px;border-radius:6px;font-size:11px;margin:2px;">${a.parameter} ${dir} ${pct}</span>`;
+  }).join(' ');
 
   const el = document.createElement('div');
   el.className = 'vlm-banner ' + cls;
@@ -1410,8 +1396,9 @@ function renderRegenProviderStatus(container, regen, manifest) {
     <span class="vlm-icon">${icon}</span>
     <span>${msg}</span>
     <span class="vlm-details">
-      Image: <strong>${escapeHtml(imgLabel)}</strong> · Copy: <strong>${escapeHtml(copyLabel)}</strong>${timeLabel ? ' · ' + timeLabel : ''}
+      Copy: <strong>${escapeHtml(copyLabel)}</strong>${timeLabel ? ' · ' + timeLabel : ''}
     </span>
+    ${adjChips ? '<div style="margin-top:6px;">' + adjChips + '</div>' : ''}
   `;
   container.appendChild(el);
 }
@@ -1495,14 +1482,12 @@ function renderRegeneration(container, data) {
   regenCol.className = 'comparison-col regenerated';
   let regenImgHtml = '';
   if (regen.image_base64) {
-    regenImgHtml = `<img src="data:image/png;base64,${regen.image_base64}" alt="Regenerated creative">`;
-  } else if (regen.image_url) {
-    regenImgHtml = `<img src="${escapeHtml(regen.image_url)}" alt="Regenerated creative">`;
+    regenImgHtml = `<img src="data:image/png;base64,${regen.image_base64}" alt="Edited creative">`;
   } else if (regen.error) {
-    regenImgHtml = `<div style="padding:24px;text-align:center;color:var(--warning);font-size:13px;background:var(--surface2);border-radius:10px;margin-bottom:14px;">Image generation unavailable: ${escapeHtml(regen.error)}</div>`;
+    regenImgHtml = `<div style="padding:24px;text-align:center;color:var(--warning);font-size:13px;background:var(--surface2);border-radius:10px;margin-bottom:14px;">Image editing failed: ${escapeHtml(regen.error)}</div>`;
   }
   regenCol.innerHTML = `
-    <div class="comparison-label regenerated">✦ Regenerated</div>
+    <div class="comparison-label regenerated">✦ Edited</div>
     ${regenImgHtml}
     <div class="metrics-strip" style="margin-bottom:0">
       ${regenAnalysis ? renderMiniMetrics(regenAnalysis) : '<div style="color:var(--text-dim);font-size:13px;">Re-analysis pending image generation</div>'}
@@ -1556,13 +1541,23 @@ function renderRegeneration(container, data) {
     container.appendChild(copyCard);
   }
 
-  // 4. Change Manifest
-  if (strategy.primary_changes && strategy.primary_changes.length > 0) {
+  // 4. Change Manifest — image adjustments + strategy
+  const imageAdjs = manifest.image_adjustments || [];
+  const hasChanges = imageAdjs.length > 0 || (strategy.primary_changes && strategy.primary_changes.length > 0);
+
+  if (hasChanges) {
     const manifestEl = document.createElement('div');
     manifestEl.className = 'manifest-card';
 
-    const changesHtml = strategy.primary_changes.map(c =>
-      `<li><span class="change-label">Applied</span>${escapeHtml(c)}</li>`
+    // Image adjustments
+    const adjHtml = imageAdjs.map(a => {
+      const dir = a.value > 1.0 || (a.parameter === 'warmth' && a.value > 0) ? '↑' : '↓';
+      const pct = a.parameter === 'warmth' ? (a.value > 0 ? '+' : '') + (a.value * 100).toFixed(0) + '%' : (a.value > 1 ? '+' : '') + ((a.value * 100) - 100).toFixed(0) + '%';
+      return `<li><span class="change-label">Image</span>${escapeHtml(a.parameter)} ${dir} ${pct} — ${escapeHtml(a.reason)}</li>`;
+    }).join('');
+
+    const changesHtml = (strategy.primary_changes || []).map(c =>
+      `<li><span class="change-label">Strategy</span>${escapeHtml(c)}</li>`
     ).join('');
 
     const cfApplied = (strategy.counterfactuals_applied || []).map(c =>
@@ -1570,8 +1565,8 @@ function renderRegeneration(container, data) {
     ).join('');
 
     manifestEl.innerHTML = `
-      <div class="card-title"><span class="dot"></span> Regeneration Manifest</div>
-      <ul class="manifest-changes">${changesHtml}${cfApplied}</ul>
+      <div class="card-title"><span class="dot"></span> Edit Manifest</div>
+      <ul class="manifest-changes">${adjHtml}${changesHtml}${cfApplied}</ul>
       <div class="manifest-strategy">
         <strong>Strategy:</strong> ${escapeHtml(capitalize(strategy.synthesis_mode || 'reinforce'))} mode<br>
         <strong>Target:</strong> ${escapeHtml(capitalize(strategy.target_emotion || 'neutral'))} (V=${fmt(strategy.target_valence)}, A=${fmt(strategy.target_arousal)})<br>
