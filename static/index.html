@@ -668,6 +668,26 @@ select:focus, input[type=text]:focus { border-color: var(--accent); }
         </select>
       </div>
 
+      <!-- Test Month (seasonality override) -->
+      <div class="form-group">
+        <label>Test Month <span class="optional">(seasonality override)</span></label>
+        <select id="testMonth">
+          <option value="">— Current month —</option>
+          <option value="1">January</option>
+          <option value="2">February</option>
+          <option value="3">March</option>
+          <option value="4">April</option>
+          <option value="5">May</option>
+          <option value="6">June</option>
+          <option value="7">July</option>
+          <option value="8">August</option>
+          <option value="9">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+        </select>
+      </div>
+
       <!-- Audience Mood -->
       <div class="form-group">
         <label>Audience Mood <span class="optional">(optional)</span></label>
@@ -931,6 +951,8 @@ async function runAnalysis() {
   if (attCtx) fd.append('attention_context', attCtx);
   const companyUrl = document.getElementById('companyUrl').value.trim();
   if (companyUrl) fd.append('company_url', companyUrl);
+  const testMonth = document.getElementById('testMonth').value;
+  if (testMonth) fd.append('test_month', testMonth);
 
   const endpoint = isVideo ? '/api/analyze-video' : '/api/analyze';
 

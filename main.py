@@ -182,6 +182,7 @@ async def analyze(
     segment_id: Optional[str] = Form(None),
     region: Optional[str] = Form(None),
     company_url: Optional[str] = Form(None),
+    test_month: Optional[int] = Form(None),
 ):
     """Proxy the image + params to Mavren Brain's /affective/profile-from-image."""
 
@@ -204,6 +205,8 @@ async def analyze(
         data["region"] = region
     if company_url:
         data["company_url"] = company_url
+    if test_month is not None:
+        data["test_month"] = str(test_month)
 
     headers = {}
     if MAVREN_API_KEY:
