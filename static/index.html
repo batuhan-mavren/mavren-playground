@@ -129,6 +129,64 @@ select:focus, input[type=text]:focus { border-color: var(--accent); }
 .empty-state .icon { font-size: 48px; opacity: .3; margin-bottom: 12px; }
 
 /* Synthesis Card */
+/* Brand Intelligence Card */
+.brand-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px; margin-bottom: 16px;
+}
+.brand-card .card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.brand-card .card-title {
+  font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+}
+.brand-card .card-title .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+}
+.brand-profile-row {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.brand-chip {
+  background: var(--surface2); border: 1px solid var(--border);
+  padding: 4px 10px; border-radius: 8px; font-size: 12px;
+}
+.brand-chip strong { color: var(--text); }
+.brand-chip span { color: var(--text-dim); }
+.brand-colors-row {
+  display: flex; gap: 4px; align-items: center; margin: 8px 0;
+}
+.brand-color-swatch {
+  width: 20px; height: 20px; border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.alignment-dimensions {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px; margin-top: 12px;
+}
+.alignment-dim {
+  background: var(--surface2); border-radius: 8px; padding: 10px;
+  text-align: center;
+}
+.alignment-dim .dim-score {
+  font-size: 20px; font-weight: 700; margin-bottom: 2px;
+}
+.alignment-dim .dim-label {
+  font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.alignment-bar {
+  height: 4px; border-radius: 2px; background: var(--surface);
+  margin-top: 6px; overflow: hidden;
+}
+.alignment-bar-fill {
+  height: 100%; border-radius: 2px; transition: width 0.4s ease;
+}
+.brand-insights {
+  margin-top: 12px; font-size: 13px; color: var(--text-dim); line-height: 1.6;
+}
+.brand-insights li { margin-bottom: 4px; }
+
 .synthesis-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 14px; padding: 24px; position: relative;
@@ -915,6 +973,7 @@ async function runAnalysis() {
     // Now render everything (errors here won't block logging)
     try { renderMetrics(resultsArea, data); } catch (e) { console.warn('renderMetrics:', e); }
     try { if (data.vlm_status) renderVlmStatus(resultsArea, data.vlm_status); } catch (e) { console.warn('renderVlmStatus:', e); }
+    try { if (data.brand_profile || data.brand_alignment) renderBrandIntelligence(resultsArea, data); } catch (e) { console.warn('renderBrand:', e); }
     try {
       if (isVideo && data.video_signals) {
         if (data.video_signals.emotional_arc) renderEmotionalArc(resultsArea, data.video_signals.emotional_arc);
@@ -1148,6 +1207,100 @@ function renderAudioSignals(container, audio) {
     <div class="audio-detail">${pills}</div>
     ${transcriptHtml}
   `;
+  container.appendChild(card);
+}
+
+function renderBrandIntelligence(container, data) {
+  const bp = data.brand_profile;
+  const ba = data.brand_alignment;
+  if (!bp && !ba) return;
+
+  const card = document.createElement('div');
+  card.className = 'brand-card';
+
+  let html = `<div class="card-header"><div class="card-title"><span class="dot"></span> Brand Intelligence</div></div>`;
+
+  // Brand profile section
+  if (bp) {
+    const region = bp.region ? ` (${bp.region.toUpperCase()})` : '';
+    html += `<div style="font-size:16px;font-weight:600;margin-bottom:8px;">${escapeHtml(bp.brand_name)}${escapeHtml(region)}</div>`;
+
+    // Key profile chips
+    html += `<div class="brand-profile-row">`;
+    if (bp.archetype && bp.archetype !== 'unknown') html += `<div class="brand-chip"><strong>Archetype:</strong> <span>${escapeHtml(capitalize(bp.archetype))}</span></div>`;
+    if (bp.voice && bp.voice.emotional_register && bp.voice.emotional_register !== 'unknown') html += `<div class="brand-chip"><strong>Voice:</strong> <span>${escapeHtml(capitalize(bp.voice.emotional_register))}</span></div>`;
+    if (bp.voice && bp.voice.formality && bp.voice.formality !== 'unknown') html += `<div class="brand-chip"><strong>Formality:</strong> <span>${escapeHtml(capitalize(bp.voice.formality))}</span></div>`;
+    if (bp.positioning && bp.positioning.market_position && bp.positioning.market_position !== 'unknown') html += `<div class="brand-chip"><strong>Position:</strong> <span>${escapeHtml(capitalize(bp.positioning.market_position))}</span></div>`;
+    if (bp.positioning && bp.positioning.industry && bp.positioning.industry !== 'unknown') html += `<div class="brand-chip"><strong>Industry:</strong> <span>${escapeHtml(capitalize(bp.positioning.industry))}</span></div>`;
+    html += `<div class="brand-chip"><strong>Source:</strong> <span>${escapeHtml(bp.profile_source)}</span></div>`;
+    html += `</div>`;
+
+    // Brand colors
+    const colors = (bp.visual_identity && bp.visual_identity.primary_colors) || [];
+    const secColors = (bp.visual_identity && bp.visual_identity.secondary_colors) || [];
+    const allColors = [...colors, ...secColors].slice(0, 8);
+    if (allColors.length > 0) {
+      html += `<div class="brand-colors-row">`;
+      html += `<span style="font-size:12px;color:var(--text-dim);margin-right:4px;">Colors:</span>`;
+      allColors.forEach(c => {
+        html += `<div class="brand-color-swatch" style="background:${escapeHtml(c)}" title="${escapeHtml(c)}"></div>`;
+      });
+      html += `</div>`;
+    }
+
+    // Tagline
+    if (bp.positioning && bp.positioning.tagline) {
+      html += `<div style="font-size:13px;color:var(--text-dim);font-style:italic;margin:8px 0;">"${escapeHtml(bp.positioning.tagline)}"</div>`;
+    }
+  }
+
+  // Brand alignment section
+  if (ba) {
+    const overallPct = (ba.overall * 100).toFixed(0);
+    const overallColor = ba.overall >= 0.7 ? 'var(--success)' : ba.overall >= 0.45 ? 'var(--warning)' : 'var(--error)';
+
+    html += `<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">`;
+    html += `<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">`;
+    html += `<span style="font-size:14px;font-weight:600;">Brand Alignment</span>`;
+    html += `<span style="font-size:24px;font-weight:700;color:${overallColor};">${overallPct}%</span>`;
+    html += `</div>`;
+
+    // Dimension scores
+    const dims = [
+      { key: 'color_alignment', label: 'Color' },
+      { key: 'tone_alignment', label: 'Tone' },
+      { key: 'archetype_alignment', label: 'Archetype' },
+      { key: 'need_alignment', label: 'Need' },
+      { key: 'message_alignment', label: 'Message' },
+    ];
+
+    html += `<div class="alignment-dimensions">`;
+    dims.forEach(d => {
+      const score = ba[d.key] != null ? ba[d.key] : 0;
+      const pct = (score * 100).toFixed(0);
+      const color = score >= 0.7 ? 'var(--success)' : score >= 0.45 ? 'var(--warning)' : 'var(--error)';
+      html += `<div class="alignment-dim">`;
+      html += `<div class="dim-score" style="color:${color}">${pct}%</div>`;
+      html += `<div class="dim-label">${d.label}</div>`;
+      html += `<div class="alignment-bar"><div class="alignment-bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+
+    // Insights
+    const insights = ba.dimension_insights || [];
+    const deviations = ba.deviation_context || [];
+    const allInsights = [...insights, ...deviations];
+    if (allInsights.length > 0) {
+      html += `<ul class="brand-insights">`;
+      allInsights.slice(0, 5).forEach(i => { html += `<li>${escapeHtml(i)}</li>`; });
+      html += `</ul>`;
+    }
+
+    html += `</div>`;
+  }
+
+  card.innerHTML = html;
   container.appendChild(card);
 }
 
