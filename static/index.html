@@ -626,6 +626,15 @@ select:focus, input[type=text]:focus { border-color: var(--accent); }
         </select>
       </div>
 
+      <!-- Company URL (Brand Intelligence) -->
+      <div class="form-group">
+        <label>Company Website <span class="optional">(optional)</span></label>
+        <input type="text" id="companyUrl" placeholder="e.g. nike.com">
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">
+          Enables brand-specific analysis — scrapes the site to build a brand profile
+        </div>
+      </div>
+
       <!-- Brand Archetype -->
       <div class="form-group">
         <label>Brand Archetype <span class="optional">(optional)</span></label>
@@ -862,6 +871,8 @@ async function runAnalysis() {
   if (archetype) fd.append('brand_archetype', archetype);
   if (segment) fd.append('segment_id', segment);
   if (attCtx) fd.append('attention_context', attCtx);
+  const companyUrl = document.getElementById('companyUrl').value.trim();
+  if (companyUrl) fd.append('company_url', companyUrl);
 
   const endpoint = isVideo ? '/api/analyze-video' : '/api/analyze';
 

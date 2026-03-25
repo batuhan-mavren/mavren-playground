@@ -181,6 +181,7 @@ async def analyze(
     brand_archetype: Optional[str] = Form(None),
     segment_id: Optional[str] = Form(None),
     region: Optional[str] = Form(None),
+    company_url: Optional[str] = Form(None),
 ):
     """Proxy the image + params to Mavren Brain's /affective/profile-from-image."""
 
@@ -201,6 +202,8 @@ async def analyze(
         data["segment_id"] = segment_id
     if region:
         data["region"] = region
+    if company_url:
+        data["company_url"] = company_url
 
     headers = {}
     if MAVREN_API_KEY:
