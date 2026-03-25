@@ -996,6 +996,7 @@ async function runAnalysis() {
     try { renderMetrics(resultsArea, data); } catch (e) { console.warn('renderMetrics:', e); }
     try { if (data.vlm_status) renderVlmStatus(resultsArea, data.vlm_status); } catch (e) { console.warn('renderVlmStatus:', e); }
     try { if (data.brand_profile || data.brand_alignment) renderBrandIntelligence(resultsArea, data); } catch (e) { console.warn('renderBrand:', e); }
+    try { if (data.temporal_mood) renderSeasonalContext(resultsArea, data.temporal_mood); } catch (e) { console.warn('renderSeasonal:', e); }
     try {
       if (isVideo && data.video_signals) {
         if (data.video_signals.emotional_arc) renderEmotionalArc(resultsArea, data.video_signals.emotional_arc);
@@ -1319,6 +1320,73 @@ function renderBrandIntelligence(container, data) {
       html += `</ul>`;
     }
 
+    html += `</div>`;
+  }
+
+  card.innerHTML = html;
+  container.appendChild(card);
+}
+
+function renderSeasonalContext(container, tm) {
+  if (!tm) return;
+
+  const MONTH_NAMES = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthName = MONTH_NAMES[tm.month] || `Month ${tm.month}`;
+  const regionLabel = tm.region ? tm.region.toUpperCase() : '';
+  const intensityPct = ((tm.mood_intensity || 0) * 100).toFixed(0);
+  const intensityColor = tm.mood_intensity >= 0.7 ? 'var(--warning)' : tm.mood_intensity >= 0.4 ? 'var(--accent)' : 'var(--text-dim)';
+
+  const card = document.createElement('div');
+  card.className = 'brand-card';
+
+  let html = `<div class="card-header"><div class="card-title"><span class="dot"></span> Seasonal Context</div></div>`;
+
+  // Title row: region + month
+  html += `<div style="font-size:16px;font-weight:600;margin-bottom:8px;">${escapeHtml(regionLabel)} &mdash; ${escapeHtml(monthName)}</div>`;
+
+  // Mood chips
+  html += `<div class="brand-profile-row">`;
+  if (tm.dominant_mood) html += `<div class="brand-chip"><strong>Dominant Mood:</strong> <span>${escapeHtml(capitalize(tm.dominant_mood))}</span></div>`;
+  if (tm.secondary_mood) html += `<div class="brand-chip"><strong>Undercurrent:</strong> <span>${escapeHtml(capitalize(tm.secondary_mood))}</span></div>`;
+  html += `<div class="brand-chip"><strong>Intensity:</strong> <span style="color:${intensityColor}">${intensityPct}%</span></div>`;
+  html += `</div>`;
+
+  // Calendar events
+  const events = tm.calendar_events || [];
+  if (events.length > 0) {
+    html += `<div style="margin:10px 0 6px;font-size:12px;color:var(--text-dim);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Calendar Events</div>`;
+    html += `<div class="brand-profile-row">`;
+    events.forEach(e => { html += `<div class="brand-chip" style="background:rgba(172,85,255,0.12);border-color:rgba(172,85,255,0.25);">${escapeHtml(e)}</div>`; });
+    html += `</div>`;
+  }
+
+  // Recommended vs avoid emotions
+  const reco = tm.recommended_emotions || [];
+  const avoid = tm.emotions_to_avoid || [];
+  if (reco.length > 0 || avoid.length > 0) {
+    html += `<div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;">`;
+    if (reco.length > 0) {
+      html += `<div style="flex:1;min-width:140px;">`;
+      html += `<div style="font-size:12px;color:var(--success);font-weight:600;margin-bottom:4px;">Emotions that resonate</div>`;
+      html += `<div class="brand-profile-row">`;
+      reco.forEach(e => { html += `<div class="brand-chip" style="background:rgba(0,200,100,0.1);border-color:rgba(0,200,100,0.25);font-size:12px;">${escapeHtml(capitalize(e))}</div>`; });
+      html += `</div></div>`;
+    }
+    if (avoid.length > 0) {
+      html += `<div style="flex:1;min-width:140px;">`;
+      html += `<div style="font-size:12px;color:var(--error);font-weight:600;margin-bottom:4px;">Emotions to avoid</div>`;
+      html += `<div class="brand-profile-row">`;
+      avoid.forEach(e => { html += `<div class="brand-chip" style="background:rgba(255,80,80,0.1);border-color:rgba(255,80,80,0.25);font-size:12px;">${escapeHtml(capitalize(e))}</div>`; });
+      html += `</div></div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Temporal insight
+  if (tm.temporal_insight) {
+    html += `<div style="margin-top:12px;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border);font-size:13px;color:var(--text-dim);line-height:1.5;">`;
+    html += `${escapeHtml(tm.temporal_insight)}`;
     html += `</div>`;
   }
 
