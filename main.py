@@ -139,11 +139,10 @@ LOGIN_HTML = """<!DOCTYPE html>
              margin:0 auto 22px}
   .logo-wrap img{width:46px;height:46px;display:block}
   .login-card h1{font-family:'Poppins',sans-serif;font-size:24px;font-weight:700;
-                 letter-spacing:-0.015em;margin-bottom:6px;color:var(--dark-blue)}
+                 letter-spacing:-0.015em;margin-bottom:28px;color:var(--dark-blue)}
   .login-card h1 .accent{background:linear-gradient(135deg,#a076f9 0%,#3c6ae7 100%);
                  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
                  background-clip:text}
-  .login-card p{color:var(--slate);font-size:13.5px;margin-bottom:28px;font-weight:500}
   input[type=password]{width:100%;padding:13px 16px;border-radius:11px;
        border:1px solid #C9D0E2;background:#fff;color:var(--dark-blue);
        font-size:15px;outline:none;font-family:'DM Sans',sans-serif;
@@ -166,7 +165,6 @@ LOGIN_HTML = """<!DOCTYPE html>
 <div class="login-card">
   <div class="logo-wrap"><img src="/static/logo-mark-blue.svg" alt="Mavren"></div>
   <h1><span class="accent">Mavren</span> Playground</h1>
-  <p>Cognitive creative analysis · 7-layer engine</p>
   <form id="loginForm">
     <input type="password" id="pw" placeholder="Password" autofocus>
     <button type="submit">Enter</button>
