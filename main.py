@@ -94,37 +94,66 @@ LOGIN_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Mavren Playground — Login</title>
+<link rel="icon" href="/static/logo-mark-blue.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap">
 <style>
+  :root{
+    --mavren-blue:#5271FF;--vivid-azure:#0175E4;--mauve:#7E88F3;
+    --dark-blue:#11245B;--slate:#707B8A;--cloud:#F4F6FA;
+  }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-       background:#0a0a0f;color:#e0e0e0;display:flex;align-items:center;
-       justify-content:center;min-height:100vh}
-  .login-card{background:#13131a;border:1px solid #2a2a3a;border-radius:16px;
-              padding:48px 40px;width:100%;max-width:400px;text-align:center}
-  .login-card h1{font-size:24px;font-weight:600;margin-bottom:8px;
-                 background:linear-gradient(135deg,#7c5cfc,#c084fc);
-                 -webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .login-card p{color:#888;font-size:14px;margin-bottom:32px}
-  input[type=password]{width:100%;padding:14px 16px;border-radius:10px;
-       border:1px solid #2a2a3a;background:#1a1a24;color:#e0e0e0;
-       font-size:15px;outline:none;transition:border .2s}
-  input[type=password]:focus{border-color:#7c5cfc}
-  button{width:100%;margin-top:16px;padding:14px;border:none;border-radius:10px;
-         background:linear-gradient(135deg,#7c5cfc,#9f6cfc);color:#fff;
-         font-size:15px;font-weight:600;cursor:pointer;transition:opacity .2s}
-  button:hover{opacity:.9}
-  .error{color:#f87171;font-size:13px;margin-top:12px;display:none}
+  body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+       background:var(--cloud);color:var(--dark-blue);
+       display:flex;align-items:center;justify-content:center;min-height:100vh;
+       -webkit-font-smoothing:antialiased;
+       background-image:
+         radial-gradient(700px 460px at 100% -10%,rgba(82,113,255,0.12),transparent 60%),
+         radial-gradient(600px 420px at 0% 110%,rgba(126,136,243,0.10),transparent 60%);
+       background-attachment:fixed}
+  .login-card{background:#fff;border:1px solid #E2E6F1;border-radius:20px;
+              padding:44px 40px 40px;width:100%;max-width:420px;text-align:center;
+              box-shadow:0 20px 50px rgba(17,36,91,0.10),0 4px 12px rgba(17,36,91,0.04)}
+  .logo-wrap{width:64px;height:64px;border-radius:16px;background:var(--cloud);
+             border:1px solid #E2E6F1;display:flex;align-items:center;justify-content:center;
+             margin:0 auto 22px}
+  .logo-wrap img{width:46px;height:46px;display:block}
+  .login-card h1{font-family:'Poppins',sans-serif;font-size:24px;font-weight:700;
+                 letter-spacing:-0.015em;margin-bottom:6px;color:var(--dark-blue)}
+  .login-card h1 .accent{background:linear-gradient(135deg,#a076f9 0%,#3c6ae7 100%);
+                 -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                 background-clip:text}
+  .login-card p{color:var(--slate);font-size:13.5px;margin-bottom:28px;font-weight:500}
+  input[type=password]{width:100%;padding:13px 16px;border-radius:11px;
+       border:1px solid #C9D0E2;background:#fff;color:var(--dark-blue);
+       font-size:15px;outline:none;font-family:'DM Sans',sans-serif;
+       transition:border-color .15s,box-shadow .15s}
+  input[type=password]::placeholder{color:var(--slate);opacity:.7}
+  input[type=password]:focus{border-color:var(--mavren-blue);
+       box-shadow:0 0 0 3px rgba(82,113,255,0.15)}
+  button{width:100%;margin-top:14px;padding:13px;border:none;border-radius:11px;
+         background:linear-gradient(135deg,#a076f9 0%,#3c6ae7 100%);color:#fff;
+         font-size:15px;font-weight:600;font-family:'Poppins',sans-serif;
+         letter-spacing:.01em;cursor:pointer;
+         box-shadow:0 4px 14px rgba(60,106,231,0.30);
+         transition:transform .15s,box-shadow .15s}
+  button:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(60,106,231,0.40)}
+  .error{color:#F46531;font-size:13px;margin-top:12px;display:none;font-weight:500}
+  .footer{margin-top:24px;font-size:11.5px;color:var(--slate);font-style:italic}
 </style>
 </head>
 <body>
 <div class="login-card">
-  <h1>Mavren Playground</h1>
-  <p>Enter the password to continue</p>
+  <div class="logo-wrap"><img src="/static/logo-mark-blue.svg" alt="Mavren"></div>
+  <h1><span class="accent">Mavren</span> Playground</h1>
+  <p>Cognitive creative analysis · 7-layer engine</p>
   <form id="loginForm">
     <input type="password" id="pw" placeholder="Password" autofocus>
     <button type="submit">Enter</button>
     <div class="error" id="err">Wrong password</div>
   </form>
+  <div class="footer">Behind every metric, there's a human decision.</div>
 </div>
 <script>
 document.getElementById('loginForm').addEventListener('submit',async e=>{
