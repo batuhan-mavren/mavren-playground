@@ -791,7 +791,7 @@ select:focus, input[type=text]:focus {
     </div>
   </div>
   <div class="header-actions">
-    <button class="logout-btn preset-btn" id="moovePresetBtn" onclick="loadMoovePreset()">Load Moove demo</button>
+    <button class="logout-btn preset-btn" id="clientPresetBtn" style="display:none"></button>
     <button class="logout-btn" onclick="logout()">Logout</button>
   </div>
 </header>
@@ -1059,6 +1059,11 @@ select:focus, input[type=text]:focus {
 </div>
 
 <script>
+// ---------------------------------------------------------------------------
+// Client config — server injects window.MAVREN_CLIENT via /c/<slug>
+// ---------------------------------------------------------------------------
+const CLIENT = window.MAVREN_CLIENT || { slug: 'default', preset_button: null, auto_apply_preset: false };
+
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
@@ -2553,19 +2558,41 @@ function loadMoovePreset() {
   set('audienceMood', 'neutral');
   set('attentionContext', 'passive_browsing');
 
-  const btn = document.getElementById('moovePresetBtn');
-  if (btn) {
-    const orig = btn.textContent;
-    btn.textContent = '✓ Moove demo loaded';
-    btn.style.borderColor = 'var(--success)';
-    btn.style.color = 'var(--success)';
-    setTimeout(() => {
-      btn.textContent = orig;
-      btn.style.borderColor = 'var(--accent)';
-      btn.style.color = 'var(--accent)';
-    }, 2200);
-  }
+  flashPresetButton('✓ Moove demo loaded');
 }
+
+function flashPresetButton(msg) {
+  const btn = document.getElementById('clientPresetBtn');
+  if (!btn) return;
+  const orig = btn.textContent;
+  btn.textContent = msg;
+  btn.style.borderColor = 'var(--success)';
+  btn.style.color = 'var(--success)';
+  setTimeout(() => {
+    btn.textContent = orig;
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  }, 2200);
+}
+
+// ---------------------------------------------------------------------------
+// Client config bootstrap — show preset button if the slug exposes one.
+// ---------------------------------------------------------------------------
+(function applyClientConfig() {
+  const cfg = CLIENT.preset_button;
+  const btn = document.getElementById('clientPresetBtn');
+  if (!btn || !cfg) return;
+  btn.textContent = cfg.label;
+  btn.style.display = '';
+  btn.onclick = () => {
+    const fn = window[cfg.action];
+    if (typeof fn === 'function') fn();
+  };
+  if (CLIENT.auto_apply_preset) {
+    const fn = window[cfg.action];
+    if (typeof fn === 'function') fn();
+  }
+})();
 </script>
 </body>
 </html>

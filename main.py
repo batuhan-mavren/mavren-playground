@@ -47,6 +47,25 @@ SESSION_SECRET = os.getenv("SESSION_SECRET", "change-me-in-prod")
 
 
 # ---------------------------------------------------------------------------
+# Client demo profiles — single source of truth for per-client customization.
+# Add a new entry to expose at /c/<slug>. Frontend reads `window.MAVREN_CLIENT`.
+# ---------------------------------------------------------------------------
+
+CLIENT_PROFILES: dict = {
+    "default": {
+        "name": "Mavren",
+        "preset_button": None,
+        "auto_apply_preset": False,
+    },
+    "moove": {
+        "name": "Moove Media",
+        "preset_button": {"label": "Load Moove demo", "action": "loadMoovePreset"},
+        "auto_apply_preset": False,
+    },
+}
+
+
+# ---------------------------------------------------------------------------
 # Password Middleware
 # ---------------------------------------------------------------------------
 
@@ -623,7 +642,22 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
+def _render_index(client_slug: str) -> str:
+    """Read static/index.html and inject the client config as window.MAVREN_CLIENT."""
+    profile = CLIENT_PROFILES.get(client_slug) or CLIENT_PROFILES["default"]
+    payload = {"slug": client_slug if client_slug in CLIENT_PROFILES else "default", **profile}
+    inject = f"<script>window.MAVREN_CLIENT = {json.dumps(payload)};</script>\n</head>"
+    with open("static/index.html") as f:
+        return f.read().replace("</head>", inject, 1)
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    with open("static/index.html") as f:
-        return f.read()
+    return _render_index("default")
+
+
+@app.get("/c/{client_slug}", response_class=HTMLResponse)
+async def index_for_client(client_slug: str):
+    if client_slug not in CLIENT_PROFILES:
+        raise HTTPException(404, f"Unknown client: {client_slug}")
+    return _render_index(client_slug)
