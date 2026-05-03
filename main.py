@@ -372,7 +372,7 @@ async def regenerate(
 # Claude Synthesis — Improvement Suggestions
 # ---------------------------------------------------------------------------
 
-SYNTHESIS_PROMPT = """You are Mavren Brain's creative strategist. You've just analyzed an advertising creative through a 7-layer psychological engine. Below is the full raw analysis.
+SYNTHESIS_PROMPT_DIGITAL = """You are Mavren Brain's creative strategist. You've just analyzed an advertising creative through a 7-layer psychological engine. Below is the full raw analysis.
 
 Your job: synthesize this into **clear, actionable improvement suggestions** that a creative team or media buyer can immediately act on.
 
@@ -406,6 +406,61 @@ RAW ANALYSIS:
 {raw_response}"""
 
 
+SYNTHESIS_PROMPT_OOH = """You are Mavren Brain's creative strategist analysing an Out-of-Home / transit / DOOH creative through a 7-layer psychological engine. Below is the full raw analysis.
+
+This is **not a digital ad**. The viewer encounters this creative at speed, at distance, in physical context — not in a feed. Discard scroll-stop, click-through, and conversion-rate framing entirely. The success metric here is **brand memory and recall** that triggers action at the next moment of opportunity, not immediate engagement.
+
+Channel: {channel}{placement_block}
+
+Structure your response as:
+
+## Overall Assessment
+One paragraph: how does this creative perform on the **glance test** (3 seconds at 30+ km/h, or seconds of distracted dwell on a platform)? Does it carry one clear idea, or does it ask the viewer to do too much cognitive work for the surface?
+
+## Key Strengths
+2-3 bullet points of what's working — focus on **visual hierarchy at distance**, **single-message discipline**, **brand identifiability without copy**, and **emotional residue** (what feeling the viewer carries away after the encounter).
+
+## Improvement Recommendations
+3-5 concrete recommendations. Each should include:
+- **What to change** (specific to this surface — text-density caps, focal-point placement, contrast at distance, dwell-window match, daypart fit)
+- **Why it matters** (which psychological/perceptual constraint of *this* OOH surface drives it — viewer speed, viewing angle, frequency cycle, environmental noise)
+- **Expected impact** (what shifts in the viewer's *memory trace* — not their click behaviour)
+
+Avoid CTA-heavy advice unless the surface genuinely supports interaction (DOOH-with-QR, taxi-interior screen). For static OOH, optimise for recall, not response.
+
+## Frequency & Daypart Fit
+One paragraph: given a typical commuter sees this creative 5-15× per week on this surface, does the asset reward repeat exposure or fatigue against it? Which dayparts (AM rush / midday / PM rush / weekend) does the emotional register match — and which does it miss?
+
+## Per-Surface Repurposing
+One paragraph: if this exact creative were redeployed to a *different* Moove surface in the network, which surfaces would it survive on as-is, which would need a brief change, and which should not run it at all? Reference the channel_fit ranking in the analysis.
+
+If this is a VIDEO creative (DOOH or concept-train), also include:
+
+## Emotional Arc Review
+One paragraph: for a digital screen with looping playback (typically 6-15 seconds), does the arc (build, resolve, sustain, oscillate, decline) serve recall? Is the **last frame** — the peak-end the viewer carries away — branded and unambiguous? Any pacing issues for a viewer who joined mid-loop?
+
+Keep it sharp, OOH-fluent, grounded in the data. Write for a media planner or OOH brief, not a paid-social buyer. Don't translate digital advice into OOH language — start from OOH first principles.
+
+---
+
+RAW ANALYSIS:
+{raw_response}"""
+
+
+# Channel families that get the OOH-flavored synthesis prompt.
+# Anything matching these prefixes/values uses SYNTHESIS_PROMPT_OOH.
+_OOH_CHANNEL_PREFIXES = ("transit_", "dooh_")
+_OOH_CHANNEL_EXACT = {"ooh"}
+
+
+def _is_ooh_channel(channel: Optional[str]) -> bool:
+    if not channel:
+        return False
+    if channel in _OOH_CHANNEL_EXACT:
+        return True
+    return channel.startswith(_OOH_CHANNEL_PREFIXES)
+
+
 @app.post("/api/synthesize")
 async def synthesize(request: Request):
     """Send the raw Mavren Brain response to Claude for human-friendly synthesis."""
@@ -418,10 +473,25 @@ async def synthesize(request: Request):
 
     body = await request.json()
     raw_response = body.get("raw_response", {})
+    channel = body.get("channel") or ""
+    placement_label = body.get("placement_label") or ""
 
-    prompt_text = SYNTHESIS_PROMPT.format(
-        raw_response=json.dumps(raw_response, indent=2, default=str)
-    )
+    if _is_ooh_channel(channel):
+        placement_block = (
+            f"\nPlacement context: {placement_label}\n"
+            "Use the placement context to anchor recommendations to that audience and physical environment."
+            if placement_label
+            else ""
+        )
+        prompt_text = SYNTHESIS_PROMPT_OOH.format(
+            channel=channel,
+            placement_block=placement_block,
+            raw_response=json.dumps(raw_response, indent=2, default=str),
+        )
+    else:
+        prompt_text = SYNTHESIS_PROMPT_DIGITAL.format(
+            raw_response=json.dumps(raw_response, indent=2, default=str)
+        )
 
     payload = {
         "model": "claude-sonnet-4-20250514",
