@@ -368,6 +368,7 @@ async def regenerate(
     region: Optional[str] = Form(None),
     attention_context: Optional[str] = Form(None),
     client_trust_signals_json: Optional[str] = Form(None),
+    num_from_scratch: int = Form(3),
 ):
     """Proxy to Mavren Brain's /regenerate endpoint — edits original image + generates copy."""
 
@@ -391,6 +392,7 @@ async def regenerate(
         data["attention_context"] = attention_context
     if client_trust_signals_json:
         data["client_trust_signals_json"] = client_trust_signals_json
+    data["num_from_scratch"] = str(max(1, min(num_from_scratch, 3)))
 
     headers = {}
     if MAVREN_API_KEY:

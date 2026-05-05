@@ -558,6 +558,22 @@ select:focus, input[type=text]:focus {
 .comparison-grid.three-up { grid-template-columns: 1fr 1fr 1fr; }
 @media (max-width: 1180px) { .comparison-grid.three-up { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 920px) { .comparison-grid, .comparison-grid.three-up { grid-template-columns: 1fr; } }
+/* From-Scratch variant row: rendered below the Original | Adjusted row when
+   multiple variants are returned. Each variant gets its own column so the
+   row scales 1 → 3 wide cleanly. */
+.from-scratch-grid {
+  display: grid; gap: 16px; margin-top: 16px;
+}
+.from-scratch-grid.cols-1 { grid-template-columns: 1fr; }
+.from-scratch-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.from-scratch-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 1180px) { .from-scratch-grid.cols-3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 920px) { .from-scratch-grid { grid-template-columns: 1fr !important; } }
+.archetype-chip {
+  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; padding: 2px 8px; border-radius: 6px;
+  background: var(--mauve, #7E88F3); color: #fff; margin-left: 8px;
+}
 .comparison-col {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-lg); padding: 22px; position: relative;
@@ -2474,10 +2490,11 @@ function renderRegeneration(container, data) {
     container.appendChild(vBanner);
   }
 
-  // 2. Side-by-side images — 3-up when Creative B (from-scratch) is present
+  // 2. Side-by-side images — Original | Adjusted on row 1, then up to 3
+  //    Mavren-From-Scratch variants on row 2 (each driven by a different
+  //    copy archetype so the variants differ on layout strategy).
   const compGrid = document.createElement('div');
-  const hasFromScratch = !!regen.image_base64_from_scratch;
-  compGrid.className = 'comparison-grid' + (hasFromScratch ? ' three-up' : '');
+  compGrid.className = 'comparison-grid';
 
   // Original
   const origCol = document.createElement('div');
@@ -2518,25 +2535,60 @@ function renderRegeneration(container, data) {
   `;
   compGrid.appendChild(regenCol);
 
-  // Creative B — Mavren-From-Scratch (only when produced)
-  if (hasFromScratch) {
-    const fsCol = document.createElement('div');
-    fsCol.className = 'comparison-col from-scratch';
-    const fsImgHtml = `<img src="data:image/png;base64,${regen.image_base64_from_scratch}" alt="Mavren-From-Scratch creative">`;
-    const providerB = regen.image_provider_from_scratch;
-    const providerBChip = providerB
-      ? `<span class="provider-chip">via ${providerB === 'nano_banana_compose' ? 'Nano Banana compose' : escapeHtml(providerB)}</span>`
-      : '';
-    fsCol.innerHTML = `
-      <div class="comparison-label from-scratch">★ Mavren-From-Scratch${providerBChip}</div>
-      ${fsImgHtml}
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.5;">
-        Composed fresh from the brief — brand identity preserved, composition built from the Mavren psychological direction.
-      </div>
-    `;
-    compGrid.appendChild(fsCol);
-  }
   container.appendChild(compGrid);
+
+  // Mavren-From-Scratch variants — render only the variants that
+  // produced an image. Falls back to the legacy single-variant fields
+  // when an older /regenerate response is received.
+  let variants = Array.isArray(regen.from_scratch_variants) ? regen.from_scratch_variants : [];
+  if (variants.length === 0 && regen.image_base64_from_scratch) {
+    variants = [{
+      archetype: (regen.copy && regen.copy.archetype) || 'stack',
+      archetype_gate: '',
+      image_base64: regen.image_base64_from_scratch,
+      provider: regen.image_provider_from_scratch,
+      copy: regen.copy || null,
+    }];
+  }
+  const renderable = variants.filter(v => !!v && !!v.image_base64);
+  if (renderable.length > 0) {
+    const fsGrid = document.createElement('div');
+    const cols = Math.min(renderable.length, 3);
+    fsGrid.className = `from-scratch-grid cols-${cols}`;
+    renderable.forEach((v, idx) => {
+      const fsCol = document.createElement('div');
+      fsCol.className = 'comparison-col from-scratch';
+      const fsImgHtml = `<img src="data:image/png;base64,${v.image_base64}" alt="Mavren-From-Scratch variant ${idx + 1}">`;
+      const provider = v.provider;
+      const providerChip = provider
+        ? `<span class="provider-chip">via ${provider === 'nano_banana_compose' ? 'Nano Banana compose' : escapeHtml(provider)}</span>`
+        : '';
+      const archLabel = (v.archetype || '').toString().toUpperCase().replace(/_/g, ' ');
+      const archChip = archLabel
+        ? `<span class="archetype-chip">${escapeHtml(archLabel)}</span>`
+        : '';
+      const headline = v.copy && v.copy.headline ? v.copy.headline : '';
+      const body = v.copy && v.copy.body ? v.copy.body : '';
+      const cta = v.copy && v.copy.cta ? v.copy.cta : '';
+      const copyPreview = (headline || body || cta)
+        ? `<div style="margin-top:10px;font-size:12px;color:var(--text-dim);line-height:1.5;">
+             ${headline ? `<div><strong style="color:var(--text);">${escapeHtml(headline)}</strong></div>` : ''}
+             ${body ? `<div style="margin-top:2px;">${escapeHtml(body)}</div>` : ''}
+             ${cta ? `<div style="margin-top:4px;font-weight:600;color:var(--mauve,#7E88F3);">${escapeHtml(cta)} →</div>` : ''}
+           </div>`
+        : '';
+      fsCol.innerHTML = `
+        <div class="comparison-label from-scratch">★ From-Scratch #${idx + 1}${archChip}${providerChip}</div>
+        ${fsImgHtml}
+        <div style="font-size:12px;color:var(--text-dim);line-height:1.5;">
+          Composed fresh from the brief — brand identity preserved, layout driven by the <strong>${escapeHtml(archLabel || 'STACK')}</strong> archetype.
+        </div>
+        ${copyPreview}
+      `;
+      fsGrid.appendChild(fsCol);
+    });
+    container.appendChild(fsGrid);
+  }
 
   // 3. Regenerated Copy
   if (copy.headline || copy.body || copy.cta) {
