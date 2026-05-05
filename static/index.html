@@ -555,7 +555,9 @@ select:focus, input[type=text]:focus {
 .comparison-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
 }
-@media (max-width: 920px) { .comparison-grid { grid-template-columns: 1fr; } }
+.comparison-grid.three-up { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 1180px) { .comparison-grid.three-up { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 920px) { .comparison-grid, .comparison-grid.three-up { grid-template-columns: 1fr; } }
 .comparison-col {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-lg); padding: 22px; position: relative;
@@ -563,6 +565,7 @@ select:focus, input[type=text]:focus {
 }
 .comparison-col.original { border-top: 3px solid var(--slate); }
 .comparison-col.regenerated { border-top: 3px solid var(--success); }
+.comparison-col.from-scratch { border-top: 3px solid var(--mauve, #7E88F3); }
 .comparison-label {
   font-size: 11px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 1.2px; margin-bottom: 14px; display: flex;
@@ -570,10 +573,26 @@ select:focus, input[type=text]:focus {
 }
 .comparison-label.original { color: var(--slate); }
 .comparison-label.regenerated { color: var(--success); }
+.comparison-label.from-scratch { color: var(--mauve, #7E88F3); }
 .comparison-col img {
   width: 100%; border-radius: 10px; margin-bottom: 14px;
   border: 1px solid var(--border);
 }
+.provider-chip {
+  display: inline-block; font-size: 10px; font-weight: 600;
+  padding: 2px 8px; border-radius: 6px; margin-left: 8px;
+  background: var(--surface2); color: var(--text-dim);
+  text-transform: none; letter-spacing: 0;
+}
+.verdict-banner {
+  padding: 12px 16px; border-radius: 10px; margin: 12px 0 16px;
+  font-size: 13px; line-height: 1.5;
+}
+.verdict-banner.improved { background: #E8F5E9; border-left: 3px solid var(--success); color: #1B5E20; }
+.verdict-banner.held     { background: var(--surface2); border-left: 3px solid var(--slate); color: var(--text-dim); }
+.verdict-banner.regressed{ background: #FFF3E0; border-left: 3px solid #FB8C00; color: #BF360C; }
+.verdict-banner ul { margin: 6px 0 0 18px; padding: 0; }
+.verdict-banner li { margin: 2px 0; }
 
 /* Delta Badges */
 .delta-strip {
@@ -1860,11 +1879,32 @@ function renderSynthesis(container, markdown) {
 function renderRegenButton(container) {
   const btnWrap = document.createElement('div');
   btnWrap.innerHTML = `
+    <details style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:12px;">
+      <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--text-dim);">
+        Optional: real claims this brand actually has (Mavren never invents)
+      </summary>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-dim);line-height:1.5;">
+        Mavren only renders supplementary trust signals (testimonials, customer counts,
+        guarantees, awards) when they're real and client-attested. Leave empty to ship
+        the creative without any factual claims.
+      </div>
+      <textarea id="trustSignalsJson" placeholder='{
+  "customer_count": "12,000+ teams",
+  "guarantee": "30-day money-back",
+  "rating": "4.8 on Trustpilot",
+  "testimonial": {"quote": "...", "attribution": "Maya R., Floom"},
+  "differentiator": "...",
+  "measurable_result": "...",
+  "promo_label": "Spring Sale", "promo_end_date": "2026-05-31",
+  "is_new_release": false
+}' style="width:100%;margin-top:10px;min-height:120px;font-family:ui-monospace,monospace;font-size:11px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:10px;"></textarea>
+    </details>
     <button class="regen-btn" id="regenBtn" onclick="runRegeneration()">
       ✨ Regenerate Creative
     </button>
     <div style="text-align:center;margin-top:6px;font-size:11px;color:var(--text-dim);">
-      Uses DALL-E 3 + Claude to create an improved version based on the psychological analysis
+      Returns Mavren-Adjusted (brand-locked edit) and Mavren-From-Scratch (fresh composition)
+      driven by the psychological brief. Uses Gemini Nano Banana when configured; PIL fallback otherwise.
     </div>
   `;
   container.appendChild(btnWrap);
@@ -2273,6 +2313,17 @@ async function runRegeneration() {
   if (effectiveSegment) fd.append('segment_id', effectiveSegment);
   if (attCtx) fd.append('attention_context', attCtx);
 
+  // Optional client trust signals — validated as JSON; silently dropped on parse error
+  const trustRaw = (document.getElementById('trustSignalsJson') || {}).value || '';
+  if (trustRaw.trim()) {
+    try {
+      JSON.parse(trustRaw);  // validate; server will re-parse
+      fd.append('client_trust_signals_json', trustRaw);
+    } catch (_e) {
+      console.warn('Invalid trust signals JSON — ignored');
+    }
+  }
+
   try {
     const resp = await fetch('/api/regenerate', { method: 'POST', body: fd });
     clearInterval(progressInterval);
@@ -2401,9 +2452,32 @@ function renderRegeneration(container, data) {
     container.appendChild(deltaEl);
   }
 
-  // 2. Side-by-side images
+  // 1b. Quality verdict — surfaces regressions instead of presenting them as wins.
+  const verdict = data.quality_verdict;
+  if (verdict && verdict.verdict) {
+    const vBanner = document.createElement('div');
+    vBanner.className = 'verdict-banner ' + verdict.verdict;
+    const headline = verdict.verdict === 'improved' ? '✓ Mavren-Adjusted improved on the original'
+                   : verdict.verdict === 'regressed' ? '⚠ Mavren-Adjusted regressed on key metrics'
+                   : '◇ Mavren-Adjusted held the original\'s position';
+    const recLabel = verdict.recommendation === 'ship_regen'      ? 'Recommendation: ship the Adjusted variant.'
+                   : verdict.recommendation === 'ship_original'   ? 'Recommendation: keep the original — Adjusted variant is worse on key metrics.'
+                   : verdict.recommendation === 'operator_review' ? 'Recommendation: operator review — mixed signals.'
+                   : '';
+    const listItems = (arr) => (arr || []).map(s => `<li>${escapeHtml(s)}</li>`).join('');
+    vBanner.innerHTML = `
+      <strong>${headline}</strong>
+      ${recLabel ? `<div style="margin-top:4px;">${escapeHtml(recLabel)}</div>` : ''}
+      ${verdict.regressions && verdict.regressions.length ? `<ul>${listItems(verdict.regressions)}</ul>` : ''}
+      ${verdict.improvements && verdict.improvements.length ? `<ul>${listItems(verdict.improvements)}</ul>` : ''}
+    `;
+    container.appendChild(vBanner);
+  }
+
+  // 2. Side-by-side images — 3-up when Creative B (from-scratch) is present
   const compGrid = document.createElement('div');
-  compGrid.className = 'comparison-grid';
+  const hasFromScratch = !!regen.image_base64_from_scratch;
+  compGrid.className = 'comparison-grid' + (hasFromScratch ? ' three-up' : '');
 
   // Original
   const origCol = document.createElement('div');
@@ -2421,23 +2495,47 @@ function renderRegeneration(container, data) {
   `;
   compGrid.appendChild(origCol);
 
-  // Regenerated
+  // Creative A — Mavren-Adjusted
   const regenCol = document.createElement('div');
   regenCol.className = 'comparison-col regenerated';
   let regenImgHtml = '';
-  if (regen.image_base64) {
-    regenImgHtml = `<img src="data:image/png;base64,${regen.image_base64}" alt="Edited creative">`;
+  const adjustedB64 = regen.image_base64_adjusted || regen.image_base64;
+  if (adjustedB64) {
+    regenImgHtml = `<img src="data:image/png;base64,${adjustedB64}" alt="Mavren-Adjusted creative">`;
   } else if (regen.error) {
     regenImgHtml = `<div style="padding:24px;text-align:center;color:var(--warning);font-size:13px;background:var(--surface2);border-radius:10px;margin-bottom:14px;">Image editing failed: ${escapeHtml(regen.error)}</div>`;
   }
+  const providerA = regen.image_provider_adjusted;
+  const providerAChip = providerA
+    ? `<span class="provider-chip">via ${providerA === 'nano_banana_edit' ? 'Nano Banana edit' : providerA === 'pil_fallback' ? 'PIL fallback' : escapeHtml(providerA)}</span>`
+    : '';
   regenCol.innerHTML = `
-    <div class="comparison-label regenerated">✦ Edited</div>
+    <div class="comparison-label regenerated">✦ Mavren-Adjusted${providerAChip}</div>
     ${regenImgHtml}
     <div class="metrics-strip" style="margin-bottom:0">
       ${regenAnalysis ? renderMiniMetrics(regenAnalysis) : '<div style="color:var(--text-dim);font-size:13px;">Re-analysis pending image generation</div>'}
     </div>
   `;
   compGrid.appendChild(regenCol);
+
+  // Creative B — Mavren-From-Scratch (only when produced)
+  if (hasFromScratch) {
+    const fsCol = document.createElement('div');
+    fsCol.className = 'comparison-col from-scratch';
+    const fsImgHtml = `<img src="data:image/png;base64,${regen.image_base64_from_scratch}" alt="Mavren-From-Scratch creative">`;
+    const providerB = regen.image_provider_from_scratch;
+    const providerBChip = providerB
+      ? `<span class="provider-chip">via ${providerB === 'nano_banana_compose' ? 'Nano Banana compose' : escapeHtml(providerB)}</span>`
+      : '';
+    fsCol.innerHTML = `
+      <div class="comparison-label from-scratch">★ Mavren-From-Scratch${providerBChip}</div>
+      ${fsImgHtml}
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.5;">
+        Composed fresh from the brief — brand identity preserved, composition built from the Mavren psychological direction.
+      </div>
+    `;
+    compGrid.appendChild(fsCol);
+  }
   container.appendChild(compGrid);
 
   // 3. Regenerated Copy
