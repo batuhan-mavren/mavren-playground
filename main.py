@@ -439,10 +439,10 @@ One paragraph: what this creative does well psychologically and where it falls s
 3-5 specific, actionable recommendations. Each should include:
 - **What to change** (concrete, specific)
 - **Why it matters** (which psychological layer benefits)
-- **Expected impact** (what shifts in the viewer's mind)
+- **Expected impact** (use *directional* language — "would likely strengthen trust", "expected to reduce post-engagement doubt", "should improve recall". Do NOT cite percentage point projections like "+7% trust" or "+4% retention" — Mavren has no benchmark library to back those numbers, and inventing them undermines the report's credibility.)
 
 ## Emotional Strategy Note
-One paragraph on whether the emotional strategy (the emotion being triggered, the funnel stage, the audience) is well-aligned — and what the ideal emotional path would be.
+One paragraph on whether the emotional strategy (the emotion being triggered, the funnel stage, the audience) is well-aligned — and what the ideal emotional path would be.{regen_block}
 
 If this is a VIDEO creative, also include:
 
@@ -450,6 +450,11 @@ If this is a VIDEO creative, also include:
 One paragraph analyzing the video's emotional journey: does the arc (build, resolve, sustain, oscillate, decline) serve the campaign objective? Is the peak-end moment (last frame) optimized for memory and action? Any pacing issues?
 
 Keep it sharp, strategic, and grounded in the data. No fluff. Write for someone who understands marketing but not cognitive science — translate the psychology into business language.
+
+GROUNDING RULES (HARD):
+- Every claim must be supported by a field in the raw analysis. If the analysis says cognitive_load=0.45, you may cite that. If you want to claim a brightness target, the analysis must contain a reflective signal that supports it.
+- Never invent numeric lift projections or "+X%" claims — Mavren does not have a benchmark library to back them, so they read as fabrication to anyone in advertising.
+- Never recommend adding factual claims to the creative (customer counts, freshness/sourcing claims, ratings, awards, testimonials, guarantees) unless the user has explicitly supplied a corresponding client trust signal. If suggesting a credibility play, frame it as "if the client can substantiate X, add..." — never assert the client can.
 
 ---
 
@@ -475,7 +480,7 @@ One paragraph: how does this creative perform on the **glance test** (3 seconds 
 3-5 concrete recommendations. Each should include:
 - **What to change** (specific to this surface — text-density caps, focal-point placement, contrast at distance, dwell-window match, daypart fit)
 - **Why it matters** (which psychological/perceptual constraint of *this* OOH surface drives it — viewer speed, viewing angle, frequency cycle, environmental noise)
-- **Expected impact** (what shifts in the viewer's *memory trace* — not their click behaviour)
+- **Expected impact** (what shifts in the viewer's *memory trace* — not their click behaviour. Use *directional* language; never cite percentage projections like "+7% recall" — Mavren has no benchmark library to back them.)
 
 Avoid CTA-heavy advice unless the surface genuinely supports interaction (DOOH-with-QR, taxi-interior screen). For static OOH, optimise for recall, not response.
 
@@ -512,9 +517,72 @@ def _is_ooh_channel(channel: Optional[str]) -> bool:
     return channel.startswith(_OOH_CHANNEL_PREFIXES)
 
 
+def _build_regen_block(regen_payload: Optional[dict]) -> str:
+    """Compose a "MAVREN-GENERATED VARIANTS" section the synthesis prompt
+    can cross-reference against. Returns empty string when no variants are
+    available — the prompt then keeps its original, regen-unaware shape."""
+    if not regen_payload or not isinstance(regen_payload, dict):
+        return ""
+    regen = regen_payload.get("regeneration") or {}
+    if not regen:
+        return ""
+    variants = regen.get("from_scratch_variants") or []
+    if not variants:
+        # Legacy single-variant shape
+        if regen.get("image_base64_from_scratch"):
+            variants = [{
+                "archetype": (regen.get("copy") or {}).get("archetype") or "stack",
+                "copy": regen.get("copy") or {},
+            }]
+    if not variants:
+        return ""
+    lines = [
+        "",
+        "",
+        "## MAVREN-GENERATED VARIANTS (cross-reference these against your recommendations)",
+        "Mavren just produced the following from-scratch variants for this brief. After your "
+        "Improvement Recommendations section, add a short sub-section titled "
+        "**Variant Cross-Reference** that maps each recommendation to one of:",
+        "  - which variant addresses it (cite the archetype + index, e.g. \"Variant #2 (BIG_OFFER) addresses recommendation 1\")",
+        "  - or \"no variant addresses this — would need a follow-up regen\"",
+        "",
+        "Variants:",
+    ]
+    for i, v in enumerate(variants):
+        copy = v.get("copy") or {}
+        head = (copy.get("headline") or "").strip()
+        body_t = (copy.get("body") or "").strip()
+        cta = (copy.get("cta") or "").strip()
+        arch = v.get("archetype") or "?"
+        score = v.get("predicted_score")
+        top = v.get("is_top_pick")
+        score_chip = f" (predicted_score={score:.2f})" if isinstance(score, (int, float)) else ""
+        top_chip = " ★ top pick" if top else ""
+        lens = v.get("motivational_lens") or {}
+        lens_chip = (
+            f" lens=({lens.get('target_emotion')},{lens.get('dominant_need')})"
+            if lens else ""
+        )
+        lines.append(
+            f"  - Variant #{i + 1} archetype={arch}{lens_chip}{score_chip}{top_chip}"
+        )
+        if head:
+            lines.append(f"      headline: \"{head}\"")
+        if body_t:
+            lines.append(f"      body: \"{body_t}\"")
+        if cta:
+            lines.append(f"      cta: \"{cta}\"")
+    return "\n".join(lines)
+
+
 @app.post("/api/synthesize")
 async def synthesize(request: Request):
-    """Send the raw Mavren Brain response to Claude for human-friendly synthesis."""
+    """Send the raw Mavren Brain response to Claude for human-friendly synthesis.
+
+    When `regen_result` is supplied, the synthesis prompt is augmented with a
+    MAVREN-GENERATED VARIANTS section so the strategist's recommendations
+    cross-reference the deliverables instead of reading like a parallel
+    commentary that never saw the regen output."""
 
     if not ANTHROPIC_API_KEY:
         return JSONResponse(
@@ -526,6 +594,8 @@ async def synthesize(request: Request):
     raw_response = body.get("raw_response", {})
     channel = body.get("channel") or ""
     placement_label = body.get("placement_label") or ""
+    regen_result = body.get("regen_result")
+    regen_block = _build_regen_block(regen_result)
 
     if _is_ooh_channel(channel):
         placement_block = (
@@ -539,9 +609,11 @@ async def synthesize(request: Request):
             placement_block=placement_block,
             raw_response=json.dumps(raw_response, indent=2, default=str),
         )
+        prompt_text += regen_block
     else:
         prompt_text = SYNTHESIS_PROMPT_DIGITAL.format(
-            raw_response=json.dumps(raw_response, indent=2, default=str)
+            regen_block=regen_block,
+            raw_response=json.dumps(raw_response, indent=2, default=str),
         )
 
     payload = {

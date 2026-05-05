@@ -574,6 +574,16 @@ select:focus, input[type=text]:focus {
   text-transform: uppercase; padding: 2px 8px; border-radius: 6px;
   background: var(--mauve, #7E88F3); color: #fff; margin-left: 8px;
 }
+.top-pick-chip {
+  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+  text-transform: uppercase; padding: 2px 8px; border-radius: 6px;
+  background: linear-gradient(90deg, #f5b800, #f59e0b); color: #fff;
+  margin-left: 8px; box-shadow: 0 1px 4px rgba(245, 158, 11, 0.3);
+}
+.comparison-col.from-scratch.top-pick {
+  border-top: 3px solid #f5b800;
+  box-shadow: 0 0 0 1px rgba(245, 184, 0, 0.4), var(--shadow);
+}
 .comparison-col {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-lg); padding: 22px; position: relative;
@@ -1892,6 +1902,47 @@ function renderSynthesis(container, markdown) {
   container.appendChild(card);
 }
 
+// Re-run synthesis after regen completes, this time passing the regen
+// output so the strategist's recommendations cross-reference the actual
+// variants we produced (instead of generating advice unaware of the
+// deliverables). Replaces the previous synthesis card in place.
+async function refreshSynthesisWithRegen(regenPayload, originalRaw) {
+  if (!originalRaw) return;
+  try {
+    const channelEl = document.getElementById('channel');
+    const channelValue = channelEl ? channelEl.value : '';
+    const placementEl = document.getElementById('attentionContext');
+    const placementLabel = placementEl ? (placementEl.value || '') : '';
+    const resp = await fetch('/api/synthesize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        raw_response: originalRaw,
+        channel: channelValue,
+        placement_label: placementLabel,
+        regen_result: regenPayload,
+      }),
+    });
+    if (!resp.ok) return;
+    const synthData = await resp.json();
+    if (!synthData || !synthData.synthesis) return;
+    // Replace the existing synthesis card if present, otherwise append.
+    const existing = document.querySelector('.synthesis-card');
+    if (existing) {
+      existing.querySelector('.synthesis-content').innerHTML = renderMarkdown(synthData.synthesis);
+      const titleEl = existing.querySelector('.card-title');
+      if (titleEl && !titleEl.dataset.refreshed) {
+        titleEl.innerHTML += ' <span style="font-size:11px;font-weight:600;color:var(--mauve,#7E88F3);margin-left:8px;">· refreshed with variants</span>';
+        titleEl.dataset.refreshed = '1';
+      }
+    } else {
+      renderSynthesis(document.getElementById('resultsArea'), synthData.synthesis);
+    }
+  } catch (e) {
+    console.warn('refreshSynthesisWithRegen failed:', e);
+  }
+}
+
 function renderRegenButton(container) {
   const btnWrap = document.createElement('div');
   btnWrap.innerHTML = `
@@ -2265,6 +2316,26 @@ function fmt(v) { return v != null ? (typeof v === 'number' ? v.toFixed(2) : v) 
 function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : ''; }
 function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// Debug mode: enabled via ?debug=1 query param (sticky in localStorage).
+// When OFF, engineering-flavored chips (provider tags, gate reasons,
+// internal scores) are hidden so the customer-facing UI reads cleanly.
+function isDebugMode() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('debug') === '1') {
+      try { localStorage.setItem('mavren_debug', '1'); } catch (_) {}
+      return true;
+    }
+    if (params.get('debug') === '0') {
+      try { localStorage.removeItem('mavren_debug'); } catch (_) {}
+      return false;
+    }
+    return localStorage.getItem('mavren_debug') === '1';
+  } catch (_) {
+    return false;
+  }
+}
+
 function renderMarkdown(md) {
   return md
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
@@ -2360,6 +2431,11 @@ async function runRegeneration() {
 
     // Render regeneration results
     renderRegeneration(resultsArea, data);
+
+    // Re-fire synthesis with the regen output so the recommendations
+    // cross-reference the variants we just produced instead of reading
+    // like a parallel commentary that never saw the deliverables.
+    refreshSynthesisWithRegen(data, lastRawResponse);
 
   } catch (err) {
     clearInterval(progressInterval);
@@ -2469,16 +2545,24 @@ function renderRegeneration(container, data) {
   }
 
   // 1b. Quality verdict — surfaces regressions instead of presenting them as wins.
+  //     held_no_meaningful_change rolls into the muted "held" style with copy
+  //     that explicitly tells the operator no real lift was detected (instead
+  //     of a green checkmark + ±0.01 noise). The from-scratch variants are
+  //     still presented; this is purely about not overclaiming on Creative A.
   const verdict = data.quality_verdict;
   if (verdict && verdict.verdict) {
     const vBanner = document.createElement('div');
-    vBanner.className = 'verdict-banner ' + verdict.verdict;
+    const cssVerdict = verdict.verdict === 'held_no_meaningful_change' ? 'held' : verdict.verdict;
+    vBanner.className = 'verdict-banner ' + cssVerdict;
     const headline = verdict.verdict === 'improved' ? '✓ Mavren-Adjusted improved on the original'
                    : verdict.verdict === 'regressed' ? '⚠ Mavren-Adjusted regressed on key metrics'
+                   : verdict.verdict === 'held_no_meaningful_change' ? '◇ Adjustment held — no meaningful lift detected'
                    : '◇ Mavren-Adjusted held the original\'s position';
     const recLabel = verdict.recommendation === 'ship_regen'      ? 'Recommendation: ship the Adjusted variant.'
                    : verdict.recommendation === 'ship_original'   ? 'Recommendation: keep the original — Adjusted variant is worse on key metrics.'
-                   : verdict.recommendation === 'operator_review' ? 'Recommendation: operator review — mixed signals.'
+                   : verdict.recommendation === 'operator_review' ? (verdict.verdict === 'held_no_meaningful_change'
+                       ? 'Recommendation: rely on the From-Scratch variants below — the Adjusted edit is at noise level.'
+                       : 'Recommendation: operator review — mixed signals.')
                    : '';
     const listItems = (arr) => (arr || []).map(s => `<li>${escapeHtml(s)}</li>`).join('');
     vBanner.innerHTML = `
@@ -2523,7 +2607,7 @@ function renderRegeneration(container, data) {
     regenImgHtml = `<div style="padding:24px;text-align:center;color:var(--warning);font-size:13px;background:var(--surface2);border-radius:10px;margin-bottom:14px;">Image editing failed: ${escapeHtml(regen.error)}</div>`;
   }
   const providerA = regen.image_provider_adjusted;
-  const providerAChip = providerA
+  const providerAChip = (isDebugMode() && providerA)
     ? `<span class="provider-chip">via ${providerA === 'nano_banana_edit' ? 'Nano Banana edit' : providerA === 'pil_fallback' ? 'PIL fallback' : escapeHtml(providerA)}</span>`
     : '';
   regenCol.innerHTML = `
@@ -2557,15 +2641,23 @@ function renderRegeneration(container, data) {
     fsGrid.className = `from-scratch-grid cols-${cols}`;
     renderable.forEach((v, idx) => {
       const fsCol = document.createElement('div');
-      fsCol.className = 'comparison-col from-scratch';
+      fsCol.className = 'comparison-col from-scratch' + (v.is_top_pick ? ' top-pick' : '');
       const fsImgHtml = `<img src="data:image/png;base64,${v.image_base64}" alt="Mavren-From-Scratch variant ${idx + 1}">`;
       const provider = v.provider;
-      const providerChip = provider
+      const providerChip = (isDebugMode() && provider)
         ? `<span class="provider-chip">via ${provider === 'nano_banana_compose' ? 'Nano Banana compose' : escapeHtml(provider)}</span>`
         : '';
       const archLabel = (v.archetype || '').toString().toUpperCase().replace(/_/g, ' ');
       const archChip = archLabel
         ? `<span class="archetype-chip">${escapeHtml(archLabel)}</span>`
+        : '';
+      // Top-pick crown — Mavren's predicted strongest variant for this brief.
+      const topPickChip = v.is_top_pick
+        ? `<span class="top-pick-chip">♛ Mavren pick</span>`
+        : '';
+      // Predicted score chip — debug only, since it's an internal signal.
+      const scoreChip = (isDebugMode() && typeof v.predicted_score === 'number')
+        ? `<span class="provider-chip">score ${v.predicted_score.toFixed(2)}</span>`
         : '';
       const headline = v.copy && v.copy.headline ? v.copy.headline : '';
       const body = v.copy && v.copy.body ? v.copy.body : '';
@@ -2578,7 +2670,7 @@ function renderRegeneration(container, data) {
            </div>`
         : '';
       fsCol.innerHTML = `
-        <div class="comparison-label from-scratch">★ From-Scratch #${idx + 1}${archChip}${providerChip}</div>
+        <div class="comparison-label from-scratch">★ From-Scratch #${idx + 1}${archChip}${topPickChip}${scoreChip}${providerChip}</div>
         ${fsImgHtml}
         <div style="font-size:12px;color:var(--text-dim);line-height:1.5;">
           Composed fresh from the brief — brand identity preserved, layout driven by the <strong>${escapeHtml(archLabel || 'STACK')}</strong> archetype.
