@@ -9,6 +9,7 @@ A lightweight FastAPI app that:
 """
 
 import base64
+import hmac
 import json
 import logging
 import os
@@ -16,6 +17,7 @@ import uuid
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlencode
 
 import httpx
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
@@ -44,6 +46,10 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 PLAYGROUND_PASSWORD = os.getenv("PLAYGROUND_PASSWORD", "mavren2026")
 SESSION_COOKIE = "mavren_playground_session"
 SESSION_SECRET = os.getenv("SESSION_SECRET", "change-me-in-prod")
+# Shared-secret query token that bypasses the password gate. When set, requests
+# arriving with `?bypass=<token>` are auto-authenticated. Used by the Mavren
+# Ads dashboard to hand off YC reviewers without a second login. Empty = off.
+BYPASS_TOKEN = os.getenv("MAVREN_BYPASS_TOKEN", "")
 
 
 # ---------------------------------------------------------------------------
@@ -82,6 +88,23 @@ class PasswordAuthMiddleware(BaseHTTPMiddleware):
         session = request.cookies.get(SESSION_COOKIE)
         if session == SESSION_SECRET:
             return await call_next(request)
+
+        # Bypass-token handoff (e.g. from the Mavren Ads dashboard).
+        bypass = request.query_params.get("bypass")
+        if BYPASS_TOKEN and bypass and hmac.compare_digest(bypass, BYPASS_TOKEN):
+            clean_qs = urlencode(
+                [(k, v) for k, v in request.query_params.multi_items() if k != "bypass"]
+            )
+            clean_url = path + (f"?{clean_qs}" if clean_qs else "")
+            resp = RedirectResponse(clean_url)
+            resp.set_cookie(
+                SESSION_COOKIE,
+                SESSION_SECRET,
+                httponly=True,
+                samesite="lax",
+                max_age=60 * 60 * 24 * 30,
+            )
+            return resp
 
         # Not authenticated → redirect to login
         if path == "/" or not path.startswith("/api"):
