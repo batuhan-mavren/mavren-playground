@@ -329,36 +329,6 @@ select:focus, input[type=text]:focus {
 .synthesis-content em { font-family: 'DM Serif Display', serif; font-style: italic; color: var(--accent2); }
 .synthesis-content p { margin-bottom: 10px; }
 
-/* Collapsible Raw Response */
-.raw-response {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-.raw-toggle {
-  width: 100%; padding: 16px 22px; background: none; border: none;
-  color: var(--text-dim); font-size: 13.5px; font-weight: 500;
-  font-family: 'DM Sans', sans-serif;
-  cursor: pointer; display: flex; align-items: center;
-  justify-content: space-between; text-align: left;
-  transition: background .15s;
-}
-.raw-toggle:hover { color: var(--text); background: var(--cloud); }
-.raw-toggle .arrow { transition: transform .2s; }
-.raw-toggle.open .arrow { transform: rotate(180deg); }
-.raw-body {
-  max-height: 0; overflow: hidden; transition: max-height .3s ease;
-  border-top: 1px solid transparent;
-}
-.raw-body.open { max-height: 5000px; border-top-color: var(--border); }
-.raw-body pre {
-  padding: 16px 22px; font-size: 12px;
-  font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
-  color: var(--text-dim); overflow-x: auto; white-space: pre-wrap;
-  word-break: break-all;
-  background: var(--cloud);
-}
-
 /* Loading States */
 .spinner {
   display: inline-block; width: 16px; height: 16px;
@@ -803,7 +773,7 @@ select:focus, input[type=text]:focus {
   body.printing-mode header, body.printing-mode .main-grid > div:first-child { display: none !important; }
   body.printing-mode .main-grid { grid-template-columns: 1fr !important; }
   body.printing-mode .container { max-width: 100% !important; padding: 0 !important; }
-  body.printing-mode .no-print, body.printing-mode .raw-response, body.printing-mode .upload-zone, body.printing-mode .empty-state { display: none !important; }
+  body.printing-mode .no-print, body.printing-mode .upload-zone, body.printing-mode .empty-state { display: none !important; }
   body.printing-mode .panel, body.printing-mode .brand-card, body.printing-mode .synthesis-card,
   body.printing-mode .arc-card, body.printing-mode .audio-card, body.printing-mode .copy-card,
   body.printing-mode .manifest-card, body.printing-mode .comparison-col {
@@ -1365,8 +1335,6 @@ async function runAnalysis() {
 
     // PDF export — works for both image and video
     try { renderExportPdfButton(resultsArea); } catch (e) { console.warn('renderExportPdf:', e); }
-
-    try { renderRawResponse(resultsArea, data); } catch (e) { console.warn('renderRaw:', e); }
 
   } catch (err) {
     clearInterval(progressInterval);
@@ -2212,26 +2180,6 @@ function exportPdf() {
     window.print();
     setTimeout(() => document.body.classList.remove('printing-mode'), 500);
   }, 100);
-}
-
-function renderRawResponse(container, data) {
-  const raw = document.createElement('div');
-  raw.className = 'raw-response';
-  raw.innerHTML = `
-    <button class="raw-toggle" onclick="toggleRaw(this)">
-      <span>Raw API Response</span>
-      <span class="arrow">▼</span>
-    </button>
-    <div class="raw-body">
-      <pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>
-    </div>
-  `;
-  container.appendChild(raw);
-}
-
-function toggleRaw(btn) {
-  btn.classList.toggle('open');
-  btn.nextElementSibling.classList.toggle('open');
 }
 
 // ---------------------------------------------------------------------------
